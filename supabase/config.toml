@@ -1,1 +1,4 @@
 project_id = "wqygamcvraihqsslowhs"
+
+[functions.create-user]
+verify_jwt = true
