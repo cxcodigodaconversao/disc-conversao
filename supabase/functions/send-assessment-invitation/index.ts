@@ -36,8 +36,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending invitation to:", candidateEmail, "for assessment:", assessmentId);
 
-    // Generate assessment link
-    const assessmentLink = `${req.headers.get("origin")}/assessment/${assessmentId}`;
+    // Generate assessment link using environment variable
+    const appUrl = Deno.env.get("APP_URL") || Deno.env.get("VITE_SUPABASE_URL") || "https://wqygamcvraihqsslowhs.supabase.co";
+    const assessmentLink = `${appUrl}/assessment/${assessmentId}`;
+    
+    console.log("Assessment link generated:", assessmentLink);
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
@@ -45,86 +48,44 @@ const handler = async (req: Request): Promise<Response> => {
       to: [candidateEmail],
       subject: `Convite: Assessment DISC - ${campaignName}`,
       html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                max-width: 600px;
-                margin: 0 auto;
-                padding: 20px;
-              }
-              .header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 30px;
-                border-radius: 10px 10px 0 0;
-                text-align: center;
-              }
-              .content {
-                background: #ffffff;
-                padding: 30px;
-                border: 1px solid #e0e0e0;
-                border-top: none;
-              }
-              .button {
-                display: inline-block;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 15px 40px;
-                text-decoration: none;
-                border-radius: 8px;
-                margin: 20px 0;
-                font-weight: bold;
-              }
-              .footer {
-                text-align: center;
-                padding: 20px;
-                color: #666;
-                font-size: 12px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1 style="margin: 0;">DISC da Conversão</h1>
-            </div>
-            <div class="content">
-              <h2>Olá ${candidateName || candidateEmail}!</h2>
-              <p>Você foi convidado(a) a participar do assessment DISC para a campanha: <strong>${campaignName}</strong></p>
-              
-              <p>O Assessment DISC é uma ferramenta poderosa que identifica características comportamentais através de 4 perfis principais:</p>
-              <ul>
-                <li><strong>D</strong> - Dominância</li>
-                <li><strong>I</strong> - Influência</li>
-                <li><strong>S</strong> - Estabilidade</li>
-                <li><strong>C</strong> - Conformidade</li>
-              </ul>
-              
-              <p>O processo é dividido em 3 etapas simples e levará aproximadamente 15-20 minutos.</p>
-              
-              <div style="text-align: center;">
-                <a href="${assessmentLink}" class="button">Iniciar Assessment</a>
-              </div>
-              
-              <p style="color: #666; font-size: 14px;">
-                Ou copie e cole este link no seu navegador:<br>
-                <a href="${assessmentLink}">${assessmentLink}</a>
-              </p>
-              
-              <p>Se você tiver alguma dúvida, não hesite em entrar em contato conosco.</p>
-              
-              <p>Atenciosamente,<br><strong>Equipe DISC da Conversão</strong></p>
-            </div>
-            <div class="footer">
-              <p>© 2025 DISC da Conversão. Todos os direitos reservados.</p>
-            </div>
-          </body>
-        </html>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background: #f5f5f5;">
+    <tr>
+      <td style="background: #667eea; color: white; padding: 30px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">DISC da Conversão</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="background: #ffffff; padding: 30px;">
+        <h2 style="color: #333; margin-top: 0;">Olá ${candidateName || ""}!</h2>
+        <p style="margin: 16px 0;">Você foi convidado(a) a participar do Assessment DISC para a campanha: <strong>${campaignName}</strong></p>
+        <p style="margin: 16px 0;">O processo leva aproximadamente 15-20 minutos.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+          <tr>
+            <td style="text-align: center;">
+              <a href="${assessmentLink}" style="display: inline-block; background: #667eea; color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Iniciar Avaliação</a>
+            </td>
+          </tr>
+        </table>
+        <p style="margin: 16px 0; font-size: 12px; color: #666;">
+          Ou copie este link: <a href="${assessmentLink}" style="color: #667eea; word-break: break-all;">${assessmentLink}</a>
+        </p>
+        <p style="margin: 16px 0;">Atenciosamente,<br><strong>Equipe DISC da Conversão</strong></p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+        <p style="margin: 0;">© 2025 DISC da Conversão. Todos os direitos reservados.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
       `,
     });
 
