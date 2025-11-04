@@ -32,6 +32,7 @@ export const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
     email: "",
     password: "",
     full_name: "",
+    phone: "",
     role: "client" as "super_admin" | "client",
   });
 
@@ -61,6 +62,7 @@ export const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
         email: "",
         password: "",
         full_name: "",
+        phone: "",
         role: "client",
       });
       setOpen(false);
@@ -112,6 +114,20 @@ export const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
                 setFormData({ ...formData, email: e.target.value })
               }
               required
+              className="bg-background border-border"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefone</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="(00) 00000-0000"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
               className="bg-background border-border"
             />
           </div>

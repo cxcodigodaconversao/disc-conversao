@@ -3,17 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { EditUserDialog } from "./EditUserDialog";
+import { Pencil, Mail, Phone, User } from "lucide-react";
 
 interface User {
   id: string;
   email: string;
   full_name: string;
+  phone?: string;
   role: string;
 }
 
 export const UsersList = ({ refreshTrigger }: { refreshTrigger: number }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -23,7 +29,7 @@ export const UsersList = ({ refreshTrigger }: { refreshTrigger: number }) => {
     try {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, full_name");
+        .select("id, email, full_name, phone");
 
       if (profilesError) throw profilesError;
 
@@ -71,6 +77,17 @@ export const UsersList = ({ refreshTrigger }: { refreshTrigger: number }) => {
     }
   };
 
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditDialogOpen(true);
+  };
+
+  const handleUserUpdated = () => {
+    fetchUsers();
+    setEditDialogOpen(false);
+    setSelectedUser(null);
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -82,20 +99,53 @@ export const UsersList = ({ refreshTrigger }: { refreshTrigger: number }) => {
   }
 
   return (
-    <div className="space-y-4">
-      {users.map((user) => (
-        <Card key={user.id} className="p-4 bg-card border-border hover:bg-card-hover transition-smooth">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold">{user.full_name || "Sem nome"}</h3>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
+    <>
+      <div className="space-y-4">
+        {users.map((user) => (
+          <Card key={user.id} className="p-4 bg-card border-border hover:bg-card-hover transition-smooth">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="font-semibold">{user.full_name || "Sem nome"}</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                </div>
+                {user.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">{user.phone}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge className={getRoleBadgeColor(user.role)}>
+                  {getRoleLabel(user.role)}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleEditUser(user)}
+                  title="Editar usuário"
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-            <Badge className={getRoleBadgeColor(user.role)}>
-              {getRoleLabel(user.role)}
-            </Badge>
-          </div>
-        </Card>
-      ))}
-    </div>
+          </Card>
+        ))}
+      </div>
+
+      {selectedUser && (
+        <EditUserDialog
+          user={selectedUser}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onUserUpdated={handleUserUpdated}
+        />
+      )}
+    </>
   );
 };

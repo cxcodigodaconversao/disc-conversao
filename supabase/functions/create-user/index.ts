@@ -9,6 +9,7 @@ interface CreateUserRequest {
   email: string
   password: string
   full_name: string
+  phone?: string
   role: 'super_admin' | 'client'
 }
 
@@ -56,9 +57,9 @@ Deno.serve(async (req) => {
     }
 
     // Get request data
-    const { email, password, full_name, role }: CreateUserRequest = await req.json()
+    const { email, password, full_name, phone, role }: CreateUserRequest = await req.json()
 
-    console.log('Creating user:', { email, full_name, role })
+    console.log('Creating user:', { email, full_name, phone, role })
 
     // Create the new user
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -74,6 +75,18 @@ Deno.serve(async (req) => {
     }
 
     console.log('User created:', newUser.user.id)
+
+    // Update profile with phone if provided
+    if (phone) {
+      const { error: profileUpdateError } = await supabaseAdmin
+        .from('profiles')
+        .update({ phone })
+        .eq('id', newUser.user.id)
+
+      if (profileUpdateError) {
+        console.error('Error updating profile with phone:', profileUpdateError)
+      }
+    }
 
     // Insert role
     const { error: roleInsertError } = await supabaseAdmin
