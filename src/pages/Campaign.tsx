@@ -37,6 +37,7 @@ const Campaign = () => {
     name: "",
   });
   const [addingCandidate, setAddingCandidate] = useState(false);
+  const [sendingInvitation, setSendingInvitation] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCampaignData();
@@ -91,6 +92,31 @@ const Campaign = () => {
       toast.error(error.message || "Erro ao adicionar candidato");
     } finally {
       setAddingCandidate(false);
+    }
+  };
+
+  const handleSendInvitation = async (assessment: Assessment) => {
+    setSendingInvitation(assessment.id);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-assessment-invitation", {
+        body: {
+          assessmentId: assessment.id,
+          candidateEmail: assessment.candidate_email,
+          candidateName: assessment.candidate_name,
+          campaignName: campaign?.name,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(`Convite enviado para ${assessment.candidate_email}!`);
+      fetchCampaignData();
+    } catch (error: any) {
+      console.error("Error sending invitation:", error);
+      toast.error(error.message || "Erro ao enviar convite");
+    } finally {
+      setSendingInvitation(null);
     }
   };
 
@@ -251,10 +277,13 @@ const Campaign = () => {
                           variant="outline"
                           size="sm"
                           className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          disabled={assessment.status !== "pending"}
+                          disabled={assessment.status !== "pending" || sendingInvitation === assessment.id}
+                          onClick={() => handleSendInvitation(assessment)}
                         >
                           <Mail className="w-4 h-4 mr-2" />
-                          {assessment.status === "pending"
+                          {sendingInvitation === assessment.id
+                            ? "Enviando..."
+                            : assessment.status === "pending"
                             ? "Enviar Convite"
                             : "Enviado"}
                         </Button>
