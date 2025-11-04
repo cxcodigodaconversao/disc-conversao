@@ -13,7 +13,6 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -35,40 +34,23 @@ const Login = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-          },
-        });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success("Cadastro realizado com sucesso! Você já pode fazer login.");
-          setIsSignUp(false);
-        }
+      if (error) {
+        toast.error(error.message);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success("Login realizado com sucesso!");
-        }
+        toast.success("Login realizado com sucesso!");
       }
     } catch (error) {
-      toast.error(isSignUp ? "Erro ao fazer cadastro" : "Erro ao fazer login");
+      toast.error("Erro ao fazer login");
     } finally {
       setLoading(false);
     }
@@ -81,12 +63,10 @@ const Login = () => {
         <div className="flex flex-col items-center mb-8">
           <Brain className="w-12 h-12 text-primary mb-4" />
           <h1 className="text-3xl font-bold text-primary">DISC da Conversão</h1>
-          <p className="text-muted-foreground mt-2">
-            {isSignUp ? "Criar nova conta" : "Faça login para acessar"}
-          </p>
+          <p className="text-muted-foreground mt-2">Faça login para acessar</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -118,25 +98,9 @@ const Login = () => {
             className="w-full bg-primary text-primary-foreground hover:bg-primary-hover"
             disabled={loading}
           >
-            {loading 
-              ? (isSignUp ? "Cadastrando..." : "Entrando...") 
-              : (isSignUp ? "Cadastrar" : "Entrar")
-            }
+            {loading ? "Entrando..." : "Entrar"}
           </Button>
         </form>
-
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-sm text-muted-foreground hover:text-primary transition-smooth"
-          >
-            {isSignUp 
-              ? "Já tem uma conta? Fazer login" 
-              : "Não tem conta? Cadastre-se"
-            }
-          </button>
-        </div>
       </Card>
     </div>
   );
