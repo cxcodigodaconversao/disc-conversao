@@ -9,7 +9,7 @@ interface CreateUserRequest {
   email: string
   password: string
   full_name: string
-  role: 'super_admin' | 'admin' | 'client'
+  role: 'super_admin' | 'client'
 }
 
 Deno.serve(async (req) => {
@@ -43,16 +43,16 @@ Deno.serve(async (req) => {
       throw new Error('Usuário não autenticado')
     }
 
-    // Check if user is admin
+    // Check if user is super_admin
     const { data: userRole, error: roleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
-      .in('role', ['super_admin', 'admin'])
+      .eq('role', 'super_admin')
       .single()
 
     if (roleError || !userRole) {
-      throw new Error('Acesso negado. Apenas administradores podem criar usuários.')
+      throw new Error('Acesso negado. Apenas super administradores podem criar usuários.')
     }
 
     // Get request data

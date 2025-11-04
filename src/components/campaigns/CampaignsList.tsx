@@ -27,10 +27,27 @@ export const CampaignsList = ({ refreshTrigger }: { refreshTrigger: number }) =>
 
   const fetchCampaigns = async () => {
     try {
-      const { data: campaignsData, error: campaignsError } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Verificar role do usuário
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      let query = supabase
         .from("campaigns")
         .select("*")
         .order("created_at", { ascending: false });
+
+      // Se não for super_admin, filtrar apenas campanhas próprias
+      if (roleData?.role !== "super_admin") {
+        query = query.eq("created_by", user.id);
+      }
+
+      const { data: campaignsData, error: campaignsError } = await query;
 
       if (campaignsError) throw campaignsError;
 

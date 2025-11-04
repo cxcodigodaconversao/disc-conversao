@@ -159,7 +159,7 @@ const Dashboard = () => {
           <Tabs defaultValue="campaigns" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-card">
               <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
-              <TabsTrigger value="users" disabled={!userRole || (userRole !== "super_admin" && userRole !== "admin")}>
+              <TabsTrigger value="users" disabled={userRole !== "super_admin"}>
                 Usuários
               </TabsTrigger>
             </TabsList>
@@ -177,7 +177,7 @@ const Dashboard = () => {
               <CampaignsList refreshTrigger={refreshCampaigns} />
             </TabsContent>
 
-            {(userRole === "super_admin" || userRole === "admin") && (
+            {userRole === "super_admin" && (
               <TabsContent value="users" className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>

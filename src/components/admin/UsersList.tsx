@@ -52,11 +52,11 @@ export const UsersList = ({ refreshTrigger }: { refreshTrigger: number }) => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "super_admin":
-        return "bg-danger text-white";
-      case "admin":
-        return "bg-warning text-white";
+        return "bg-primary text-white";
+      case "client":
+        return "bg-success text-white";
       default:
-        return "bg-info text-white";
+        return "bg-muted";
     }
   };
 
@@ -64,10 +64,10 @@ export const UsersList = ({ refreshTrigger }: { refreshTrigger: number }) => {
     switch (role) {
       case "super_admin":
         return "Super Admin";
-      case "admin":
-        return "Admin";
+      case "client":
+        return "Empresa";
       default:
-        return "Cliente";
+        return role;
     }
   };
 

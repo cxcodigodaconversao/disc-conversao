@@ -32,7 +32,7 @@ export const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
     email: "",
     password: "",
     full_name: "",
-    role: "client" as "super_admin" | "admin" | "client",
+    role: "client" as "super_admin" | "client",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +135,7 @@ export const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
             <Label htmlFor="role">Tipo de Usuário</Label>
             <Select
               value={formData.role}
-              onValueChange={(value: "super_admin" | "admin" | "client") =>
+              onValueChange={(value: "super_admin" | "client") =>
                 setFormData({ ...formData, role: value })
               }
             >
@@ -143,8 +143,7 @@ export const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                <SelectItem value="client">Cliente</SelectItem>
-                <SelectItem value="admin">Administrador</SelectItem>
+                <SelectItem value="client">Empresa</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
               </SelectContent>
             </Select>
