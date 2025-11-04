@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -130,18 +130,26 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
-    // Update assessment status
-    const { error: updateError } = await supabaseClient
-      .from("assessments")
-      .update({
-        status: "sent",
-        invitation_sent_at: new Date().toISOString(),
-      })
-      .eq("id", assessmentId);
+    // Check if email was actually sent (no error from Resend)
+    if (emailResponse.error) {
+      console.error("Resend error:", emailResponse.error);
+      throw new Error(`Falha ao enviar email: ${emailResponse.error.message}`);
+    }
 
-    if (updateError) {
-      console.error("Error updating assessment:", updateError);
-      throw updateError;
+    // Only update assessment status if email was sent successfully
+    if (emailResponse.data) {
+      const { error: updateError } = await supabaseClient
+        .from("assessments")
+        .update({
+          status: "sent",
+          invitation_sent_at: new Date().toISOString(),
+        })
+        .eq("id", assessmentId);
+
+      if (updateError) {
+        console.error("Error updating assessment:", updateError);
+        throw updateError;
+      }
     }
 
     return new Response(
