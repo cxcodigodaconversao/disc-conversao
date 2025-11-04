@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Brain } from "lucide-react";
+import QuestionnaireFlow from "@/components/questionnaire/QuestionnaireFlow";
 
 export default function Assessment() {
   const { id } = useParams();
@@ -32,6 +33,8 @@ export default function Assessment() {
     }
   };
 
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+
   const handleStartAssessment = async () => {
     try {
       // Update assessment status to started
@@ -43,8 +46,7 @@ export default function Assessment() {
         })
         .eq("id", id);
 
-      // TODO: Navigate to questionnaire
-      alert("Funcionalidade de questionário será implementada em breve!");
+      setShowQuestionnaire(true);
     } catch (error) {
       console.error("Error starting assessment:", error);
     }
@@ -70,6 +72,10 @@ export default function Assessment() {
         </Card>
       </div>
     );
+  }
+
+  if (showQuestionnaire) {
+    return <QuestionnaireFlow assessmentId={id!} />;
   }
 
   return (
