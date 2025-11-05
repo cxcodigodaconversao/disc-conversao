@@ -76,7 +76,13 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
   const saveResponses = async (rankings: Map<string, number>) => {
     setLoading(true);
     try {
+      console.log('Starting saveResponses...');
+      console.log('Rankings received:', Array.from(rankings.entries()));
+      console.log('Stage:', stage, 'Group:', currentGroup);
+      
       const items = getCurrentItems();
+      console.log('Current items:', items);
+      
       const responses = Array.from(rankings.entries()).map(([text, rank]) => {
         const item = items.find(i => i.text === text);
         return {
@@ -89,11 +95,18 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
         };
       });
 
+      console.log('Responses to insert:', responses);
+
       const { error } = await supabase
         .from('responses' as any)
         .insert(responses as any);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Responses saved successfully');
 
       // Move to next group or stage
       const stageInfo = getStageInfo();

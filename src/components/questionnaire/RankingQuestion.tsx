@@ -49,6 +49,8 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
       rankedItems.forEach((item, index) => {
         rankings.set(item.text, index + 1);
       });
+      console.log('Rankings to submit:', Array.from(rankings.entries()));
+      console.log('Ranked items:', rankedItems);
       onComplete(rankings);
     }
   };
@@ -80,8 +82,10 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
               {rankedItems.map((item, index) => (
                 <Card
                   key={item.text}
-                  className="p-4 cursor-pointer transition-all hover:scale-[1.02] bg-primary/10 border-primary shadow-md"
+                  draggable={false}
+                  className="p-4 cursor-pointer transition-all hover:scale-[1.02] bg-primary/10 border-primary shadow-md select-none"
                   onClick={() => handleItemClick(item, true)}
+                  onDragStart={(e) => e.preventDefault()}
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm flex-shrink-0">
@@ -112,8 +116,10 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
           {unrankedItems.map((item) => (
             <Card
               key={item.text}
-              className="p-4 cursor-pointer transition-all hover:scale-[1.02] hover:border-primary/50"
+              draggable={false}
+              className="p-4 cursor-pointer transition-all hover:scale-[1.02] hover:border-primary/50 select-none"
               onClick={() => handleItemClick(item, false)}
+              onDragStart={(e) => e.preventDefault()}
             >
               <p className="font-medium text-center">{item.text}</p>
             </Card>
