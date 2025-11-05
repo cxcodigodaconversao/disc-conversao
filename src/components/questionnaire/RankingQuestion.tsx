@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, GripVertical } from "lucide-react";
+import { Check, GripVertical, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   DndContext,
   closestCenter,
@@ -81,6 +82,7 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
   const [rankedItems, setRankedItems] = useState<RankingItem[]>([]);
   const [unrankedItems, setUnrankedItems] = useState<RankingItem[]>(items);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -131,6 +133,13 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
           
           setRankedItems(newRanked);
         }
+      } else {
+        // Show toast when trying to add more than maxRank
+        toast({
+          title: "Limite atingido",
+          description: `Você já selecionou ${maxRank} itens. Remova um item antes de adicionar outro.`,
+          variant: "destructive",
+        });
       }
     } else if (activeInRanked && !overInRanked) {
       // Moving from ranked to unranked
@@ -157,6 +166,13 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
       if (rankedItems.length < maxRank) {
         setRankedItems([...rankedItems, item]);
         setUnrankedItems(unrankedItems.filter(i => i.text !== item.text));
+      } else {
+        // Show toast when clicking on item while list is full
+        toast({
+          title: "Limite atingido",
+          description: `Você já selecionou ${maxRank} itens. Remova um item antes de adicionar outro.`,
+          variant: "destructive",
+        });
       }
     }
   };
@@ -196,24 +212,36 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
             items={rankedItems.map(item => item.text)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2 min-h-[100px] bg-muted/20 rounded-lg p-4 border-2 border-dashed border-primary/30">
+            <div className={`space-y-2 min-h-[100px] bg-muted/20 rounded-lg p-4 border-2 border-dashed transition-all ${
+              rankedItems.length >= maxRank 
+                ? 'border-primary bg-primary/5' 
+                : 'border-primary/30'
+            }`}>
               {rankedItems.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
                   Arraste itens aqui para ranquear
                 </p>
               ) : (
-                rankedItems.map((item, index) => (
-                  <div
-                    key={item.text}
-                    onClick={() => handleItemClick(item, true)}
-                  >
-                    <SortableItem
-                      item={item}
-                      rank={index + 1}
-                      isRanked={true}
-                    />
-                  </div>
-                ))
+                <>
+                  {rankedItems.map((item, index) => (
+                    <div
+                      key={item.text}
+                      onClick={() => handleItemClick(item, true)}
+                    >
+                      <SortableItem
+                        item={item}
+                        rank={index + 1}
+                        isRanked={true}
+                      />
+                    </div>
+                  ))}
+                  {rankedItems.length >= maxRank && (
+                    <div className="flex items-center gap-2 text-sm text-primary font-medium mt-3 pt-3 border-t border-primary/20">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>Lista completa! Remova um item para adicionar outro.</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </SortableContext>
