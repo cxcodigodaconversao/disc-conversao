@@ -58,8 +58,90 @@ serve(async (req) => {
       throw new Error('Incomplete DISC data - please recalculate results');
     }
 
-    // Generate comprehensive HTML report
-    const htmlContent = generateHTMLReport(assessment, result);
+    // Generate chart images using AI
+    console.log('Generating chart images...');
+    const chartImages: Record<string, string> = {};
+    
+    try {
+      // Generate DISC comparison chart
+      const discResponse = await supabaseClient.functions.invoke('generate-chart-image', {
+        body: {
+          chartType: 'disc-bars',
+          title: 'DISC Profile Comparison - Natural vs Adapted',
+          data: {
+            natural: {
+              D: result.natural_d,
+              I: result.natural_i,
+              S: result.natural_s,
+              C: result.natural_c
+            },
+            adapted: {
+              D: result.adapted_d,
+              I: result.adapted_i,
+              S: result.adapted_s,
+              C: result.adapted_c
+            }
+          }
+        }
+      });
+      if (discResponse.data?.imageUrl) {
+        chartImages.disc = discResponse.data.imageUrl;
+        console.log('DISC chart generated');
+      }
+
+      // Generate Values radar chart
+      if (result.values_scores) {
+        const valuesResponse = await supabaseClient.functions.invoke('generate-chart-image', {
+          body: {
+            chartType: 'values-radar',
+            title: 'Values Profile',
+            data: result.values_scores
+          }
+        });
+        if (valuesResponse.data?.imageUrl) {
+          chartImages.values = valuesResponse.data.imageUrl;
+          console.log('Values chart generated');
+        }
+      }
+
+      // Generate Leadership pie chart
+      if (result.leadership_style) {
+        const leadershipResponse = await supabaseClient.functions.invoke('generate-chart-image', {
+          body: {
+            chartType: 'leadership-pie',
+            title: 'Leadership Styles Distribution',
+            data: result.leadership_style
+          }
+        });
+        if (leadershipResponse.data?.imageUrl) {
+          chartImages.leadership = leadershipResponse.data.imageUrl;
+          console.log('Leadership chart generated');
+        }
+      }
+
+      // Generate Competencies chart
+      if (result.competencies) {
+        const competenciesResponse = await supabaseClient.functions.invoke('generate-chart-image', {
+          body: {
+            chartType: 'competencies-bars',
+            title: 'Top Competencies',
+            data: result.competencies
+          }
+        });
+        if (competenciesResponse.data?.imageUrl) {
+          chartImages.competencies = competenciesResponse.data.imageUrl;
+          console.log('Competencies chart generated');
+        }
+      }
+
+      console.log('All charts generated successfully:', Object.keys(chartImages));
+    } catch (chartError) {
+      console.error('Error generating charts (continuing without images):', chartError);
+      // Continue without charts - they're optional enhancements
+    }
+
+    // Generate comprehensive HTML report with chart images
+    const htmlContent = generateHTMLReport(assessment, result, chartImages);
 
     // Convert HTML to PDF using Puppeteer/Chrome
     const pdfResponse = await fetch('https://api.html2pdf.app/v1/generate', {
@@ -227,7 +309,7 @@ Relatório gerado pelo CIS Assessment
 `;
 }
 
-function generateHTMLReport(assessment: any, result: any): string {
+function generateHTMLReport(assessment: any, result: any, chartImages: Record<string, string> = {}): string {
   const discColors: Record<string, string> = {
     D: '#EF4444',
     I: '#F59E0B',
@@ -636,6 +718,11 @@ function generateHTMLReport(assessment: any, result: any): string {
     <div class="header-bar"></div>
     <h1>Intensidade do Perfil DISC</h1>
     
+    ${chartImages.disc ? `
+      <div style="text-align: center; margin: 30px 0;">
+        <img src="${chartImages.disc}" alt="DISC Profile Comparison" style="max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+      </div>
+    ` : `
     <div class="disc-comparison">
       <div class="disc-section">
         <h2 style="text-align: center;">Perfil Natural</h2>
@@ -683,6 +770,7 @@ function generateHTMLReport(assessment: any, result: any): string {
         </div>
       </div>
     </div>
+    `}
 
     <div class="grid-2" style="margin-top: 30px;">
       <div class="info-box">
@@ -945,6 +1033,12 @@ function generateHTMLReport(assessment: any, result: any): string {
     
     <p style="margin-top: 20px;">Os valores representam o que motiva e impulsiona suas decisões e comportamentos. Eduard Spranger identificou 6 valores fundamentais:</p>
     
+    ${chartImages.values ? `
+      <div style="text-align: center; margin: 25px 0;">
+        <img src="${chartImages.values}" alt="Values Radar Chart" style="max-width: 80%; height: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+      </div>
+    ` : ''}
+    
     ${result.values_scores ? `
       <div class="grid-2" style="margin-top: 25px;">
         ${Object.entries(result.values_scores)
@@ -1025,6 +1119,12 @@ function generateHTMLReport(assessment: any, result: any): string {
     <h1>Estilos de Liderança</h1>
     
     <p style="margin-top: 20px;">Seu perfil DISC revela tendências naturais de liderança. Cada estilo tem seus pontos fortes únicos:</p>
+    
+    ${chartImages.leadership ? `
+      <div style="text-align: center; margin: 25px 0;">
+        <img src="${chartImages.leadership}" alt="Leadership Styles Distribution" style="max-width: 90%; height: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+      </div>
+    ` : ''}
     
     ${result.leadership_style ? `
       <div class="grid-2" style="margin-top: 25px;">
@@ -1123,8 +1223,14 @@ function generateHTMLReport(assessment: any, result: any): string {
     <div class="header-bar"></div>
     <h1>Mapa de Competências Comportamentais</h1>
     
+    ${chartImages.competencies ? `
+      <div style="text-align: center; margin: 25px 0;">
+        <img src="${chartImages.competencies}" alt="Competencies Chart" style="max-width: 95%; height: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+      </div>
+    ` : ''}
+    
     ${result.competencies ? `
-      <h2 style="margin-top: 25px;">Competências Naturais</h2>
+      <h2 style="margin-top: 25px;">Análise Detalhada de Competências</h2>
       <div class="grid-3" style="margin-top: 15px;">
         ${Object.entries(result.competencies)
           .filter(([key]) => key.endsWith('_n'))
