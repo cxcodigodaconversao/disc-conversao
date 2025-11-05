@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,19 +42,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     const currentAttempts = currentAssessment?.send_attempts || 0;
 
-    // Generate assessment link using environment variable
-    const appUrl = Deno.env.get("APP_URL") || Deno.env.get("VITE_SUPABASE_URL") || "https://wqygamcvraihqsslowhs.supabase.co";
+    // Generate assessment link using APP_URL environment variable
+    const appUrl = Deno.env.get("APP_URL") || "https://disc-conversao.netlify.app";
     const assessmentLink = `${appUrl}/assessment/${assessmentId}`;
     
     console.log("Assessment link generated:", assessmentLink);
     console.log("Current send attempts:", currentAttempts);
 
-    // Send email via Resend
-    const emailResponse = await resend.emails.send({
-      from: "DISC da Conversão <onboarding@resend.dev>",
-      to: [candidateEmail],
-      subject: `Convite: Assessment DISC - ${campaignName}`,
-      html: `
+    // Get Gmail credentials from environment
+    const gmailUser = Deno.env.get("GMAIL_USER");
+    const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+
+    if (!gmailUser || !gmailAppPassword) {
+      throw new Error("Gmail credentials not configured");
+    }
+
+    // Prepare email content
+    const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -96,37 +97,69 @@ const handler = async (req: Request): Promise<Response> => {
   </table>
 </body>
 </html>
-      `,
+    `;
+
+    // Send email via Gmail SMTP using native fetch
+    const emailPayload = {
+      personalizations: [
+        {
+          to: [{ email: candidateEmail }],
+          subject: `Convite: Assessment DISC - ${campaignName}`,
+        },
+      ],
+      from: { email: gmailUser, name: "DISC da Conversão" },
+      content: [
+        {
+          type: "text/html",
+          value: emailHtml,
+        },
+      ],
+    };
+
+    // Create base64 encoded credentials for SMTP AUTH
+    const authString = btoa(`${gmailUser}:${gmailAppPassword}`);
+
+    // Use Gmail SMTP via API-like approach (nodemailer not available in Deno easily)
+    // Instead, we'll use a direct SMTP connection simulation via Gmail API
+    // For simplicity with Gmail, we'll use their SMTP relay via a workaround
+    
+    // Actually, let's use a proper approach: Gmail SMTP via raw socket is complex in Deno
+    // Better solution: Use Gmail API or a simple HTTP-based email service
+    // Since we have credentials, let's use a direct SMTP client library
+    
+    // Import a Deno-compatible SMTP client
+    const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+
+    const client = new SMTPClient({
+      connection: {
+        hostname: "smtp.gmail.com",
+        port: 465,
+        tls: true,
+        auth: {
+          username: gmailUser,
+          password: gmailAppPassword,
+        },
+      },
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    try {
+      await client.send({
+        from: `DISC da Conversão <${gmailUser}>`,
+        to: candidateEmail,
+        subject: `Convite: Assessment DISC - ${campaignName}`,
+        html: emailHtml,
+      });
 
-    // Check if email was actually sent (no error from Resend)
-    if (emailResponse.error) {
-      console.error("Resend error:", emailResponse.error);
-      
-      // Update assessment with error details
-      await supabaseClient
-        .from("assessments")
-        .update({
-          status: "failed",
-          last_error_message: `${emailResponse.error.name}: ${emailResponse.error.message}`,
-          send_attempts: currentAttempts + 1,
-        })
-        .eq("id", assessmentId);
+      console.log("Email sent successfully via Gmail SMTP");
 
-      throw new Error(`Falha ao enviar email: ${emailResponse.error.message}`);
-    }
-
-    // Only update assessment status if email was sent successfully
-    if (emailResponse.data) {
+      // Update assessment status to sent
       const { error: updateError } = await supabaseClient
         .from("assessments")
         .update({
           status: "sent",
           invitation_sent_at: new Date().toISOString(),
           send_attempts: currentAttempts + 1,
-          last_error_message: null, // Clear any previous error
+          last_error_message: null,
         })
         .eq("id", assessmentId);
 
@@ -134,15 +167,33 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("Error updating assessment:", updateError);
         throw updateError;
       }
-    }
 
-    return new Response(
-      JSON.stringify({ success: true, emailResponse }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+      await client.close();
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Email sent successfully" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    } catch (emailError: any) {
+      console.error("Gmail SMTP error:", emailError);
+      
+      await client.close();
+
+      // Update assessment with error details
+      await supabaseClient
+        .from("assessments")
+        .update({
+          status: "failed",
+          last_error_message: emailError.message || "Failed to send email",
+          send_attempts: currentAttempts + 1,
+        })
+        .eq("id", assessmentId);
+
+      throw new Error(`Falha ao enviar email: ${emailError.message}`);
+    }
   } catch (error: any) {
     console.error("Error in send-assessment-invitation function:", error);
     return new Response(

@@ -5,10 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Brain, ArrowLeft, Mail, Plus, RefreshCw, AlertCircle } from "lucide-react";
+import { Brain, ArrowLeft, Mail, Plus, RefreshCw, AlertCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Assessment {
   id: string;
@@ -41,6 +51,8 @@ const Campaign = () => {
   });
   const [addingCandidate, setAddingCandidate] = useState(false);
   const [sendingInvitation, setSendingInvitation] = useState<string | null>(null);
+  const [deletingCandidate, setDeletingCandidate] = useState<string | null>(null);
+  const [candidateToDelete, setCandidateToDelete] = useState<Assessment | null>(null);
 
   useEffect(() => {
     fetchCampaignData();
@@ -146,6 +158,30 @@ const Campaign = () => {
 
   const canResend = (assessment: Assessment) => {
     return ["pending", "sent", "failed", "in_progress"].includes(assessment.status);
+  };
+
+  const handleDeleteCandidate = async () => {
+    if (!candidateToDelete) return;
+    
+    setDeletingCandidate(candidateToDelete.id);
+
+    try {
+      const { error } = await supabase
+        .from("assessments")
+        .delete()
+        .eq("id", candidateToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Candidato deletado com sucesso!");
+      setCandidateToDelete(null);
+      fetchCampaignData();
+    } catch (error: any) {
+      console.error("Error deleting candidate:", error);
+      toast.error(error.message || "Erro ao deletar candidato");
+    } finally {
+      setDeletingCandidate(null);
+    }
   };
 
   if (loading) {
@@ -306,23 +342,34 @@ const Campaign = () => {
                             )}
                           </div>
                         </div>
-                        <Button
-                          variant={assessment.status === "failed" ? "destructive" : "outline"}
-                          size="sm"
-                          className={assessment.status === "failed" 
-                            ? "" 
-                            : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          }
-                          disabled={!canResend(assessment) || sendingInvitation === assessment.id}
-                          onClick={() => handleSendInvitation(assessment)}
-                        >
-                          {assessment.status === "pending" ? (
-                            <Mail className="w-4 h-4 mr-2" />
-                          ) : (
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                          )}
-                          {getButtonText(assessment, sendingInvitation === assessment.id)}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant={assessment.status === "failed" ? "destructive" : "outline"}
+                            size="sm"
+                            className={assessment.status === "failed" 
+                              ? "" 
+                              : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                            }
+                            disabled={!canResend(assessment) || sendingInvitation === assessment.id}
+                            onClick={() => handleSendInvitation(assessment)}
+                          >
+                            {assessment.status === "pending" ? (
+                              <Mail className="w-4 h-4 mr-2" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            {getButtonText(assessment, sendingInvitation === assessment.id)}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setCandidateToDelete(assessment)}
+                            disabled={deletingCandidate === assessment.id}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   ))}
@@ -332,6 +379,29 @@ const Campaign = () => {
           </div>
         </div>
       </main>
+
+      <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => !open && setCandidateToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar o candidato{" "}
+              <strong>{candidateToDelete?.candidate_name || candidateToDelete?.candidate_email}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCandidate}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deletingCandidate ? "Deletando..." : "Deletar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
