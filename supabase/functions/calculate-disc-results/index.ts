@@ -241,76 +241,63 @@ serve(async (req) => {
       .from('results')
       .insert({
         assessment_id,
+        
+        // DISC Natural
         natural_d: naturalDISC.D,
         natural_i: naturalDISC.I,
         natural_s: naturalDISC.S,
         natural_c: naturalDISC.C,
+        
+        // DISC Adaptado
         adapted_d: adaptedDISC.D,
         adapted_i: adaptedDISC.I,
         adapted_s: adaptedDISC.S,
         adapted_c: adaptedDISC.C,
-        delta_d: delta.D,
-        delta_i: delta.I,
-        delta_s: delta.S,
-        delta_c: delta.C,
-        total_tension: totalTension,
-        tension_level: tensionLevel,
-        theoretical: values.theoretical,
-        economic: values.economic,
-        aesthetic: values.aesthetic,
-        social: values.social,
-        political: values.political,
-        spiritual: values.spiritual,
+        
+        // Perfis
         primary_profile: primaryProfile,
         secondary_profile: secondaryProfile,
-        profile_description: profileDescription,
-        jung_type: jungType,
-        extroversion: jungScores.extroversion,
-        introversion: jungScores.introversion,
-        intuition: jungScores.intuition,
-        sensation: jungScores.sensation,
-        thinking: jungScores.thinking,
-        feeling: jungScores.feeling,
-        leadership_executive: leadership.executive,
-        leadership_motivator: leadership.motivator,
-        leadership_systematic: leadership.systematic,
-        leadership_methodical: leadership.methodical,
-        sales_strengths: salesInsights.strengths,
-        sales_weaknesses: salesInsights.weaknesses,
-        ideal_customer: salesInsights.idealCustomer,
-        sales_approach: salesInsights.salesApproach,
-        comp_boldness_n: competencies.boldness_n,
-        comp_command_n: competencies.command_n,
-        comp_objectivity_n: competencies.objectivity_n,
-        comp_assertiveness_n: competencies.assertiveness_n,
-        comp_persuasion_n: competencies.persuasion_n,
-        comp_extroversion_n: competencies.extroversion_n,
-        comp_enthusiasm_n: competencies.enthusiasm_n,
-        comp_sociability_n: competencies.sociability_n,
-        comp_empathy_n: competencies.empathy_n,
-        comp_patience_n: competencies.patience_n,
-        comp_persistence_n: competencies.persistence_n,
-        comp_planning_n: competencies.planning_n,
-        comp_organization_n: competencies.organization_n,
-        comp_detail_n: competencies.detail_n,
-        comp_prudence_n: competencies.prudence_n,
-        comp_concentration_n: competencies.concentration_n,
-        comp_boldness_a: competencies.boldness_a,
-        comp_command_a: competencies.command_a,
-        comp_objectivity_a: competencies.objectivity_a,
-        comp_assertiveness_a: competencies.assertiveness_a,
-        comp_persuasion_a: competencies.persuasion_a,
-        comp_extroversion_a: competencies.extroversion_a,
-        comp_enthusiasm_a: competencies.enthusiasm_a,
-        comp_sociability_a: competencies.sociability_a,
-        comp_empathy_a: competencies.empathy_a,
-        comp_patience_a: competencies.patience_a,
-        comp_persistence_a: competencies.persistence_a,
-        comp_planning_a: competencies.planning_a,
-        comp_organization_a: competencies.organization_a,
-        comp_detail_a: competencies.detail_a,
-        comp_prudence_a: competencies.prudence_a,
-        comp_concentration_a: competencies.concentration_a,
+        tension_level: tensionLevel,
+        
+        // Valores (JSONB)
+        values_scores: {
+          theoretical: values.theoretical,
+          economic: values.economic,
+          aesthetic: values.aesthetic,
+          social: values.social,
+          political: values.political,
+          spiritual: values.spiritual,
+        },
+        
+        // Jung Type (JSONB)
+        jung_type: {
+          type: jungType,
+          extroversion: jungScores.extroversion,
+          introversion: jungScores.introversion,
+          intuition: jungScores.intuition,
+          sensation: jungScores.sensation,
+          thinking: jungScores.thinking,
+          feeling: jungScores.feeling,
+        },
+        
+        // Leadership (JSONB)
+        leadership_style: {
+          executive: leadership.executive,
+          motivator: leadership.motivator,
+          systematic: leadership.systematic,
+          methodical: leadership.methodical,
+        },
+        
+        // Sales Insights (JSONB)
+        sales_insights: {
+          strengths: salesInsights.strengths,
+          weaknesses: salesInsights.weaknesses,
+          ideal_customer: salesInsights.idealCustomer,
+          sales_approach: salesInsights.salesApproach,
+        },
+        
+        // Competencies (JSONB)
+        competencies: competencies,
       })
       .select()
       .single();
