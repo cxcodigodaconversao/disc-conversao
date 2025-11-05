@@ -226,79 +226,35 @@ export const VALUES_GROUPS: ValueGroup[] = [
 
 export const DISC_PROFILES = {
   D: {
-    name: 'Diretor',
-    description: 'Orientado para resultados, decisivo e direto',
-    fullDescription: 'O perfil Diretor é caracterizado por uma forte orientação para resultados e conquistas. São pessoas decisivas, que assumem riscos calculados e buscam desafios. Tendem a ser diretas em sua comunicação e focadas em eficiência. Valorizam autonomia e poder de decisão.',
-    strengths: [
-      'Tomada de decisões rápidas',
-      'Foco em resultados',
-      'Liderança natural',
-      'Aceitação de desafios',
-      'Iniciativa e proatividade'
-    ],
-    challenges: [
-      'Pode ser impaciente',
-      'Tendência a ser muito direto',
-      'Dificuldade em delegar',
-      'Foco excessivo em tarefas em detrimento de pessoas'
-    ],
-    idealEnvironment: 'Ambientes que oferecem autonomia, desafios constantes e oportunidades de crescimento rápido'
+    name: 'Dominância',
+    description: 'Direto, decidido e orientado para resultados',
+    fullDescription: 'Pessoas com perfil D são diretas, decididas e orientadas para resultados. São naturalmente competitivas, gostam de desafios e assumir o controle de situações. Focam em realizar tarefas rapidamente e superar obstáculos. Tendem a ser assertivos, independentes e orientados para a ação.',
+    strengths: ['Tomada de decisão rápida', 'Foco em resultados', 'Iniciativa', 'Liderança natural', 'Confiança'],
+    challenges: ['Impaciência', 'Pode ser muito direto', 'Dificuldade em delegar', 'Pouca atenção aos detalhes'],
+    idealEnvironment: 'Ambientes dinâmicos com autonomia, desafios constantes e oportunidades de liderança'
   },
   I: {
-    name: 'Comunicador',
-    description: 'Entusiasta, persuasivo e sociável',
-    fullDescription: 'O perfil Comunicador é marcado por habilidades sociais excepcionais e entusiasmo contagiante. São pessoas persuasivas, otimistas e que valorizam relacionamentos. Excelentes em networking e em criar ambientes positivos. Motivados por reconhecimento e interação social.',
-    strengths: [
-      'Excelentes habilidades de comunicação',
-      'Capacidade de influenciar e persuadir',
-      'Otimismo e energia positiva',
-      'Criatividade e inovação',
-      'Construção de relacionamentos'
-    ],
-    challenges: [
-      'Pode perder foco em detalhes',
-      'Tendência a ser desorganizado',
-      'Dificuldade com tarefas repetitivas',
-      'Pode prometer demais'
-    ],
-    idealEnvironment: 'Ambientes colaborativos, dinâmicos e que valorizam criatividade e interação social'
+    name: 'Influência',
+    description: 'Comunicativo, entusiasta e persuasivo',
+    fullDescription: 'Pessoas com perfil I são comunicativas, entusiastas e persuasivas. São naturalmente sociáveis, otimistas e gostam de estar rodeadas de pessoas. Focam em relacionamentos, colaboração e inspirar outros. Tendem a ser expressivos, criativos e energéticos.',
+    strengths: ['Comunicação eficaz', 'Entusiasmo', 'Capacidade de persuasão', 'Criatividade', 'Networking'],
+    challenges: ['Pode ser excessivamente otimista', 'Dificuldade com detalhes', 'Desorganização', 'Dificuldade em manter o foco'],
+    idealEnvironment: 'Ambientes colaborativos com interação social frequente, reconhecimento e liberdade criativa'
   },
   S: {
-    name: 'Planejador',
-    description: 'Paciente, confiável e leal',
-    fullDescription: 'O perfil Planejador se destaca pela estabilidade, paciência e lealdade. São pessoas confiáveis, que valorizam harmonia e consistência. Excelentes ouvintes e colaboradores. Preferem ambientes previsíveis e mudanças graduais. Motivados por segurança e pertencimento.',
-    strengths: [
-      'Lealdade e comprometimento',
-      'Paciência e persistência',
-      'Excelente trabalho em equipe',
-      'Capacidade de ouvir ativamente',
-      'Confiabilidade'
-    ],
-    challenges: [
-      'Resistência a mudanças',
-      'Dificuldade em dizer não',
-      'Pode evitar conflitos necessários',
-      'Lentidão na tomada de decisões'
-    ],
-    idealEnvironment: 'Ambientes estáveis, previsíveis e que valorizam trabalho em equipe e relacionamentos duradouros'
+    name: 'Estabilidade',
+    description: 'Paciente, leal e bom ouvinte',
+    fullDescription: 'Pessoas com perfil S são pacientes, leais e bons ouvintes. São naturalmente calmas, confiáveis e preferem ambientes estáveis e previsíveis. Focam em manter a harmonia, apoiar outros e trabalhar em equipe. Tendem a ser consistentes, dedicados e cooperativos.',
+    strengths: ['Paciência', 'Lealdade', 'Trabalho em equipe', 'Escuta ativa', 'Calma sob pressão'],
+    challenges: ['Resistência a mudanças', 'Dificuldade em dizer não', 'Evita conflitos', 'Pode ser muito passivo'],
+    idealEnvironment: 'Ambientes estáveis com processos claros, trabalho em equipe e baixo nível de conflito'
   },
   C: {
-    name: 'Analista',
-    description: 'Preciso, sistemático e detalhista',
-    fullDescription: 'O perfil Analista é caracterizado por precisão, atenção aos detalhes e pensamento sistemático. São pessoas que valorizam qualidade, exatidão e seguem procedimentos. Excelentes em análise e resolução de problemas complexos. Motivados por precisão e perfeição.',
-    strengths: [
-      'Atenção excepcional aos detalhes',
-      'Pensamento analítico e lógico',
-      'Alto padrão de qualidade',
-      'Organização e sistematização',
-      'Precisão e exatidão'
-    ],
-    challenges: [
-      'Tendência ao perfeccionismo',
-      'Pode ser excessivamente crítico',
-      'Lentidão em decisões por excesso de análise',
-      'Dificuldade com ambiguidade'
-    ],
-    idealEnvironment: 'Ambientes estruturados, que valorizam precisão, qualidade e permitem tempo para análise detalhada'
+    name: 'Conformidade',
+    description: 'Analítico, preciso e orientado para qualidade',
+    fullDescription: 'Pessoas com perfil C são analíticas, precisas e orientadas para qualidade. São naturalmente metódicas, detalhistas e valorizam a exatidão. Focam em seguir procedimentos, garantir qualidade e evitar erros. Tendem a ser sistemáticos, cautelosos e objetivos.',
+    strengths: ['Atenção aos detalhes', 'Análise criteriosa', 'Qualidade no trabalho', 'Precisão', 'Organização'],
+    challenges: ['Perfeccionismo', 'Pode ser muito crítico', 'Dificuldade com prazos apertados', 'Resistência a mudanças'],
+    idealEnvironment: 'Ambientes organizados com padrões de qualidade bem definidos e tempo para análise'
   }
 };
