@@ -1,8 +1,25 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, GripVertical, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface RankingItem {
   text: string;
@@ -15,10 +32,71 @@ interface RankingQuestionProps {
   maxRank: number;
 }
 
+interface SortableRankedItemProps {
+  item: RankingItem;
+  index: number;
+  onRemove: () => void;
+}
+
+function SortableRankedItem({ item, index, onRemove }: SortableRankedItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.text });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className="p-4 bg-primary/10 border-primary shadow-md select-none"
+    >
+      <div className="flex items-center gap-3">
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing touch-none"
+        >
+          <GripVertical className="w-5 h-5 text-muted-foreground" />
+        </div>
+        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm flex-shrink-0">
+          {index + 1}º
+        </div>
+        <p className="font-medium flex-1">{item.text}</p>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          className="text-destructive hover:text-destructive/80 transition-colors p-1"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 export default function RankingQuestion({ items, onComplete, maxRank }: RankingQuestionProps) {
   const [rankedItems, setRankedItems] = useState<RankingItem[]>([]);
   const [unrankedItems, setUnrankedItems] = useState<RankingItem[]>(items);
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const handleItemClick = (item: RankingItem, isRanked: boolean) => {
     if (isRanked) {
@@ -38,6 +116,17 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
           variant: "destructive",
         });
       }
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = rankedItems.findIndex(item => item.text === active.id);
+      const newIndex = rankedItems.findIndex(item => item.text === over.id);
+      
+      setRankedItems(arrayMove(rankedItems, oldIndex, newIndex));
     }
   };
 
@@ -61,12 +150,17 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">
-            Seus Top {maxRank} (clique para remover)
+            Seus Top {maxRank}
           </h3>
           <span className="text-sm text-muted-foreground">
             {rankedItems.length} de {maxRank}
           </span>
         </div>
+        {rankedItems.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            💡 Arraste para reordenar • Clique no ✕ para remover
+          </p>
+        )}
         
         <div className={`space-y-2 min-h-[100px] bg-muted/20 rounded-lg p-4 border-2 border-dashed transition-all ${
           rankedItems.length >= maxRank 
@@ -79,22 +173,27 @@ export default function RankingQuestion({ items, onComplete, maxRank }: RankingQ
             </p>
           ) : (
             <>
-              {rankedItems.map((item, index) => (
-                <Card
-                  key={item.text}
-                  draggable={false}
-                  className="p-4 cursor-pointer transition-all hover:scale-[1.02] bg-primary/10 border-primary shadow-md select-none"
-                  onClick={() => handleItemClick(item, true)}
-                  onDragStart={(e) => e.preventDefault()}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={rankedItems.map(i => i.text)}
+                  strategy={verticalListSortingStrategy}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm flex-shrink-0">
-                      {index + 1}º
-                    </div>
-                    <p className="font-medium flex-1">{item.text}</p>
+                  <div className="space-y-2">
+                    {rankedItems.map((item, index) => (
+                      <SortableRankedItem
+                        key={item.text}
+                        item={item}
+                        index={index}
+                        onRemove={() => handleItemClick(item, true)}
+                      />
+                    ))}
                   </div>
-                </Card>
-              ))}
+                </SortableContext>
+              </DndContext>
               {rankedItems.length >= maxRank && (
                 <div className="flex items-center gap-2 text-sm text-primary font-medium mt-3 pt-3 border-t border-primary/20">
                   <AlertCircle className="w-4 h-4" />
