@@ -30,6 +30,29 @@ serve(async (req) => {
     
     console.log('Calculating DISC results for assessment:', assessment_id);
 
+    // CAMADA 3: Verificar se já foi completado
+    const { data: assessment } = await supabaseClient
+      .from('assessments')
+      .select('status')
+      .eq('id', assessment_id)
+      .single();
+
+    if (assessment?.status === 'completed') {
+      console.log('Assessment already completed, returning existing result');
+      const { data: existingResult } = await supabaseClient
+        .from('results')
+        .select('id')
+        .eq('assessment_id', assessment_id)
+        .single();
+      
+      if (existingResult) {
+        return new Response(
+          JSON.stringify({ success: true, result_id: existingResult.id, already_completed: true }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Fetch all responses
     const { data: responses, error: responsesError } = await supabaseClient
       .from('responses')
@@ -240,10 +263,10 @@ serve(async (req) => {
       'Preciso, sistemático e detalhista'
     }`;
 
-    // Insert result
-    const { data: result, error: insertError } = await supabaseClient
+    // CORREÇÃO 1: UPSERT ao invés de INSERT para evitar erro de duplicação
+    const { data: result, error: upsertError } = await supabaseClient
       .from('results')
-      .insert({
+      .upsert({
         assessment_id,
         
         // DISC Natural
@@ -302,13 +325,33 @@ serve(async (req) => {
         
         // Competencies (JSONB)
         competencies: competencies,
+      }, {
+        onConflict: 'assessment_id',
+        ignoreDuplicates: false
       })
       .select()
       .single();
 
-    if (insertError) throw insertError;
+    if (upsertError) throw upsertError;
 
     console.log('Results calculated successfully:', result.id);
+
+    // CORREÇÃO 4: Gerar PDF automaticamente após cálculo
+    try {
+      console.log('Initiating PDF generation...');
+      const pdfResponse = await supabaseClient.functions.invoke('generate-pdf-report', {
+        body: { assessment_id }
+      });
+      
+      if (pdfResponse.error) {
+        console.error('Error generating PDF:', pdfResponse.error);
+      } else {
+        console.log('PDF generated successfully:', pdfResponse.data?.pdf_url);
+      }
+    } catch (pdfError) {
+      console.error('PDF generation failed:', pdfError);
+      // Não falhar a requisição principal se o PDF falhar
+    }
 
     return new Response(
       JSON.stringify({ success: true, result_id: result.id }),

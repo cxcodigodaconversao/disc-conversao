@@ -20,6 +20,7 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
   const [stage, setStage] = useState<Stage>('natural');
   const [currentGroup, setCurrentGroup] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState(Date.now());
   const [elapsedTime, setElapsedTime] = useState(0);
 
@@ -119,6 +120,9 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
   };
 
   const saveResponses = async (rankings: Map<string, number>) => {
+    // CORREÇÃO 2: Proteção contra double-click
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setLoading(true);
     try {
       console.log('Starting saveResponses...');
@@ -177,11 +181,15 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
       toast.error('Erro ao salvar respostas. Tente novamente.');
     } finally {
       setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const completeAssessment = async () => {
+  const completeAssessment = async (retryCount = 0) => {
     try {
+      // CORREÇÃO 5: Feedback visual melhorado
+      toast.loading('Finalizando assessment e gerando relatório...', { id: 'completing' });
+      
       // Update assessment status
       const { error: updateError } = await supabase
         .from('assessments')
@@ -193,7 +201,7 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
 
       if (updateError) throw updateError;
 
-      // Call edge function to calculate results
+      // Call edge function to calculate results and generate PDF
       const { data, error: calcError } = await supabase.functions.invoke(
         'calculate-disc-results',
         { body: { assessment_id: assessmentId } }
@@ -201,13 +209,33 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
 
       if (calcError) throw calcError;
 
-      toast.success('Assessment concluído com sucesso!');
+      // Dismiss loading e mostrar sucesso
+      toast.dismiss('completing');
+      toast.success('✅ Assessment concluído! Relatório gerado com sucesso!', {
+        duration: 4000
+      });
       
-      // Navigate to results page
-      navigate(`/results/${assessmentId}`);
+      // Aguardar 1.5 segundos antes de redirecionar para o usuário ver a mensagem
+      setTimeout(() => {
+        navigate(`/results/${assessmentId}`);
+      }, 1500);
     } catch (error) {
+      toast.dismiss('completing');
       console.error('Error completing assessment:', error);
-      toast.error('Erro ao finalizar assessment. Tente novamente.');
+      
+      // CORREÇÃO 6: Retry automático
+      if (retryCount < 2) {
+        toast.info('Tentando novamente...', { duration: 2000 });
+        setTimeout(() => completeAssessment(retryCount + 1), 2000);
+      } else {
+        toast.error('Erro ao finalizar assessment. Tente novamente manualmente.', {
+          duration: 6000,
+          action: {
+            label: 'Tentar Novamente',
+            onClick: () => completeAssessment(0)
+          }
+        });
+      }
     }
   };
 
