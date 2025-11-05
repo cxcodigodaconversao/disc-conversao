@@ -121,6 +121,127 @@ export type Database = {
         }
         Relationships: []
       }
+      responses: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          group_number: number
+          id: string
+          item_factor: string
+          item_text: string
+          rank: number
+          stage: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          group_number: number
+          id?: string
+          item_factor: string
+          item_text: string
+          rank: number
+          stage: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          group_number?: number
+          id?: string
+          item_factor?: string
+          item_text?: string
+          rank?: number
+          stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responses_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      results: {
+        Row: {
+          adapted_c: number
+          adapted_d: number
+          adapted_i: number
+          adapted_s: number
+          assessment_id: string
+          competencies: Json | null
+          created_at: string
+          id: string
+          jung_type: Json | null
+          leadership_style: Json | null
+          natural_c: number
+          natural_d: number
+          natural_i: number
+          natural_s: number
+          primary_profile: string | null
+          report_url: string | null
+          sales_insights: Json | null
+          secondary_profile: string | null
+          tension_level: string | null
+          updated_at: string
+          values_scores: Json | null
+        }
+        Insert: {
+          adapted_c?: number
+          adapted_d?: number
+          adapted_i?: number
+          adapted_s?: number
+          assessment_id: string
+          competencies?: Json | null
+          created_at?: string
+          id?: string
+          jung_type?: Json | null
+          leadership_style?: Json | null
+          natural_c?: number
+          natural_d?: number
+          natural_i?: number
+          natural_s?: number
+          primary_profile?: string | null
+          report_url?: string | null
+          sales_insights?: Json | null
+          secondary_profile?: string | null
+          tension_level?: string | null
+          updated_at?: string
+          values_scores?: Json | null
+        }
+        Update: {
+          adapted_c?: number
+          adapted_d?: number
+          adapted_i?: number
+          adapted_s?: number
+          assessment_id?: string
+          competencies?: Json | null
+          created_at?: string
+          id?: string
+          jung_type?: Json | null
+          leadership_style?: Json | null
+          natural_c?: number
+          natural_d?: number
+          natural_i?: number
+          natural_s?: number
+          primary_profile?: string | null
+          report_url?: string | null
+          sales_insights?: Json | null
+          secondary_profile?: string | null
+          tension_level?: string | null
+          updated_at?: string
+          values_scores?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "results_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: true
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
