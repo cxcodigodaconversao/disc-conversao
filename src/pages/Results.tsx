@@ -112,12 +112,12 @@ export default function Results() {
   ];
 
   const valuesData = [
-    { subject: 'Teórico', value: result.theoretical },
-    { subject: 'Econômico', value: result.economic },
-    { subject: 'Estético', value: result.aesthetic },
-    { subject: 'Social', value: result.social },
-    { subject: 'Político', value: result.political },
-    { subject: 'Espiritual', value: result.spiritual }
+    { subject: 'Teórico', value: result.values_scores?.theoretical || 0 },
+    { subject: 'Econômico', value: result.values_scores?.economic || 0 },
+    { subject: 'Estético', value: result.values_scores?.aesthetic || 0 },
+    { subject: 'Social', value: result.values_scores?.social || 0 },
+    { subject: 'Político', value: result.values_scores?.political || 0 },
+    { subject: 'Espiritual', value: result.values_scores?.spiritual || 0 }
   ];
 
   return (
@@ -201,7 +201,7 @@ export default function Results() {
             <div>
               <h3 className="font-semibold mb-3 text-green-600">🎯 Pontos Fortes</h3>
               <ul className="space-y-2">
-                {result.sales_strengths?.map((strength: string, i: number) => (
+                {result.sales_insights?.strengths?.map((strength: string, i: number) => (
                   <li key={i} className="text-sm">• {strength}</li>
                 ))}
               </ul>
@@ -209,7 +209,7 @@ export default function Results() {
             <div>
               <h3 className="font-semibold mb-3 text-orange-600">⚠️ Pontos de Atenção</h3>
               <ul className="space-y-2">
-                {result.sales_weaknesses?.map((weakness: string, i: number) => (
+                {result.sales_insights?.weaknesses?.map((weakness: string, i: number) => (
                   <li key={i} className="text-sm">• {weakness}</li>
                 ))}
               </ul>
@@ -218,11 +218,11 @@ export default function Results() {
           <div className="mt-6 grid md:grid-cols-2 gap-6">
             <div>
               <h3 className="font-semibold mb-2">👤 Cliente Ideal</h3>
-              <p className="text-sm text-muted-foreground">{result.ideal_customer}</p>
+              <p className="text-sm text-muted-foreground">{result.sales_insights?.ideal_customer}</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">🎤 Abordagem de Vendas</h3>
-              <p className="text-sm text-muted-foreground">{result.sales_approach}</p>
+              <p className="text-sm text-muted-foreground">{result.sales_insights?.sales_approach}</p>
             </div>
           </div>
         </Card>
@@ -243,31 +243,31 @@ export default function Results() {
         {/* Jung Type */}
         <Card className="p-8 mb-8">
           <h2 className="text-2xl font-bold mb-6">Tipo Psicológico (Jung)</h2>
-          <p className="text-4xl font-bold text-primary mb-4">{result.jung_type}</p>
+          <p className="text-4xl font-bold text-primary mb-4">{result.jung_type?.type || 'N/A'}</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Extroversão</p>
-              <p className="font-semibold">{result.extroversion}%</p>
+              <p className="font-semibold">{result.jung_type?.extroversion || 0}%</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Introversão</p>
-              <p className="font-semibold">{result.introversion}%</p>
+              <p className="font-semibold">{result.jung_type?.introversion || 0}%</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Intuição</p>
-              <p className="font-semibold">{result.intuition}%</p>
+              <p className="font-semibold">{result.jung_type?.intuition || 0}%</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Sensação</p>
-              <p className="font-semibold">{result.sensation}%</p>
+              <p className="font-semibold">{result.jung_type?.sensation || 0}%</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Pensamento</p>
-              <p className="font-semibold">{result.thinking}%</p>
+              <p className="font-semibold">{result.jung_type?.thinking || 0}%</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Sentimento</p>
-              <p className="font-semibold">{result.feeling}%</p>
+              <p className="font-semibold">{result.jung_type?.feeling || 0}%</p>
             </div>
           </div>
         </Card>
@@ -277,19 +277,19 @@ export default function Results() {
           <h2 className="text-2xl font-bold mb-6">Estilos de Liderança</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <p className="text-2xl font-bold">{result.leadership_executive}%</p>
+              <p className="text-2xl font-bold">{result.leadership_style?.executive || 0}%</p>
               <p className="text-sm text-muted-foreground">Executivo</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold">{result.leadership_motivator}%</p>
+              <p className="text-2xl font-bold">{result.leadership_style?.motivator || 0}%</p>
               <p className="text-sm text-muted-foreground">Motivador</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold">{result.leadership_systematic}%</p>
+              <p className="text-2xl font-bold">{result.leadership_style?.systematic || 0}%</p>
               <p className="text-sm text-muted-foreground">Sistemático</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold">{result.leadership_methodical}%</p>
+              <p className="text-2xl font-bold">{result.leadership_style?.methodical || 0}%</p>
               <p className="text-sm text-muted-foreground">Metódico</p>
             </div>
           </div>
