@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Brain, ArrowLeft, Mail, Plus, RefreshCw, AlertCircle, Trash2 } from "lucide-react";
+import { Brain, ArrowLeft, Mail, Plus, RefreshCw, AlertCircle, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -343,23 +343,35 @@ const Campaign = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant={assessment.status === "failed" ? "destructive" : "outline"}
-                            size="sm"
-                            className={assessment.status === "failed" 
-                              ? "" 
-                              : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                            }
-                            disabled={!canResend(assessment) || sendingInvitation === assessment.id}
-                            onClick={() => handleSendInvitation(assessment)}
-                          >
-                            {assessment.status === "pending" ? (
-                              <Mail className="w-4 h-4 mr-2" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4 mr-2" />
-                            )}
-                            {getButtonText(assessment, sendingInvitation === assessment.id)}
-                          </Button>
+                          {assessment.status === "completed" ? (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="bg-success hover:bg-success/90"
+                              onClick={() => navigate(`/results/${assessment.id}`)}
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              Ver Relatório
+                            </Button>
+                          ) : (
+                            <Button
+                              variant={assessment.status === "failed" ? "destructive" : "outline"}
+                              size="sm"
+                              className={assessment.status === "failed" 
+                                ? "" 
+                                : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                              }
+                              disabled={!canResend(assessment) || sendingInvitation === assessment.id}
+                              onClick={() => handleSendInvitation(assessment)}
+                            >
+                              {assessment.status === "pending" ? (
+                                <Mail className="w-4 h-4 mr-2" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                              )}
+                              {getButtonText(assessment, sendingInvitation === assessment.id)}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
