@@ -84,7 +84,7 @@ export default function Assessment() {
         <Card className="p-8">
           <div className="text-center mb-8">
             <Brain className="w-16 h-16 mx-auto mb-4 text-primary" />
-            <h1 className="text-3xl font-bold mb-2">Assessment DISC</h1>
+            <h1 className="text-3xl font-bold mb-2">DISC da CONVERSÃO</h1>
             <p className="text-lg text-muted-foreground">
               {assessment.campaigns?.name}
             </p>
@@ -96,8 +96,7 @@ export default function Assessment() {
                 Bem-vindo(a), {assessment.candidate_name || assessment.candidate_email}!
               </h2>
               <p className="text-muted-foreground">
-                Você está prestes a iniciar o Assessment DISC, uma ferramenta que identifica
-                características comportamentais através de 4 perfis principais:
+                Você está prestes a iniciar o Assessment DISC, uma ferramenta que identifica características comportamentais.
               </p>
             </div>
 
@@ -141,7 +140,7 @@ export default function Assessment() {
 
           <div className="text-center">
             <Button size="lg" onClick={handleStartAssessment}>
-              Iniciar Assessment
+              Iniciar DISC da CONVERSÃO
             </Button>
           </div>
         </Card>
