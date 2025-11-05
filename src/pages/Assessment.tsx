@@ -98,36 +98,9 @@ export default function Assessment() {
               <p className="text-muted-foreground">
                 Você está prestes a iniciar o Assessment DISC, uma ferramenta que identifica características comportamentais.
               </p>
-            </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="p-4 bg-card">
-                <h3 className="font-semibold mb-1">D - Dominância</h3>
-                <p className="text-sm text-muted-foreground">
-                  Orientação para resultados e ação
-                </p>
-              </Card>
-              <Card className="p-4 bg-card">
-                <h3 className="font-semibold mb-1">I - Influência</h3>
-                <p className="text-sm text-muted-foreground">
-                  Foco em relacionamentos e persuasão
-                </p>
-              </Card>
-              <Card className="p-4 bg-card">
-                <h3 className="font-semibold mb-1">S - Estabilidade</h3>
-                <p className="text-sm text-muted-foreground">
-                  Busca por harmonia e consistência
-                </p>
-              </Card>
-              <Card className="p-4 bg-card">
-                <h3 className="font-semibold mb-1">C - Conformidade</h3>
-                <p className="text-sm text-muted-foreground">
-                  Atenção aos detalhes e precisão
-                </p>
-              </Card>
-            </div>
-
-            <div className="bg-muted/50 p-4 rounded-lg">
+          <div className="bg-muted/50 p-4 rounded-lg">
               <h3 className="font-semibold mb-2">O que esperar:</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>• 3 etapas de questionário simples</li>

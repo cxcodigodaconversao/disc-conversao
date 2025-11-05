@@ -58,15 +58,15 @@ function SortableRankedItem({ item, index, onRemove }: SortableRankedItemProps) 
     <Card
       ref={setNodeRef}
       style={style}
-      className="p-4 bg-primary/10 border-primary shadow-md select-none"
+      className="p-4 bg-primary/10 border-primary shadow-md select-none hover:shadow-lg transition-shadow"
     >
       <div className="flex items-center gap-3">
         <div 
           {...attributes} 
           {...listeners}
-          className="cursor-grab active:cursor-grabbing touch-none"
+          className="cursor-grab active:cursor-grabbing touch-none p-2 -m-2 hover:bg-primary/20 rounded transition-colors"
         >
-          <GripVertical className="w-5 h-5 text-muted-foreground" />
+          <GripVertical className="w-6 h-6 text-primary" />
         </div>
         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm flex-shrink-0">
           {index + 1}º
