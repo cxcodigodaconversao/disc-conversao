@@ -23,6 +23,8 @@ export type Database = {
           created_at: string
           id: string
           invitation_sent_at: string | null
+          last_error_message: string | null
+          send_attempts: number | null
           started_at: string | null
           status: string
         }
@@ -34,6 +36,8 @@ export type Database = {
           created_at?: string
           id?: string
           invitation_sent_at?: string | null
+          last_error_message?: string | null
+          send_attempts?: number | null
           started_at?: string | null
           status?: string
         }
@@ -45,6 +49,8 @@ export type Database = {
           created_at?: string
           id?: string
           invitation_sent_at?: string | null
+          last_error_message?: string | null
+          send_attempts?: number | null
           started_at?: string | null
           status?: string
         }

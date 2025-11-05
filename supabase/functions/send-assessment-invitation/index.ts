@@ -36,11 +36,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending invitation to:", candidateEmail, "for assessment:", assessmentId);
 
+    // Get current assessment to increment send_attempts
+    const { data: currentAssessment } = await supabaseClient
+      .from("assessments")
+      .select("send_attempts")
+      .eq("id", assessmentId)
+      .single();
+
+    const currentAttempts = currentAssessment?.send_attempts || 0;
+
     // Generate assessment link using environment variable
     const appUrl = Deno.env.get("APP_URL") || Deno.env.get("VITE_SUPABASE_URL") || "https://wqygamcvraihqsslowhs.supabase.co";
     const assessmentLink = `${appUrl}/assessment/${assessmentId}`;
     
     console.log("Assessment link generated:", assessmentLink);
+    console.log("Current send attempts:", currentAttempts);
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
@@ -94,6 +104,17 @@ const handler = async (req: Request): Promise<Response> => {
     // Check if email was actually sent (no error from Resend)
     if (emailResponse.error) {
       console.error("Resend error:", emailResponse.error);
+      
+      // Update assessment with error details
+      await supabaseClient
+        .from("assessments")
+        .update({
+          status: "failed",
+          last_error_message: `${emailResponse.error.name}: ${emailResponse.error.message}`,
+          send_attempts: currentAttempts + 1,
+        })
+        .eq("id", assessmentId);
+
       throw new Error(`Falha ao enviar email: ${emailResponse.error.message}`);
     }
 
@@ -104,6 +125,8 @@ const handler = async (req: Request): Promise<Response> => {
         .update({
           status: "sent",
           invitation_sent_at: new Date().toISOString(),
+          send_attempts: currentAttempts + 1,
+          last_error_message: null, // Clear any previous error
         })
         .eq("id", assessmentId);
 

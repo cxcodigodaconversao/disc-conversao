@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Brain, ArrowLeft, Mail, Plus } from "lucide-react";
+import { Brain, ArrowLeft, Mail, Plus, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Assessment {
   id: string;
@@ -17,6 +18,8 @@ interface Assessment {
   invitation_sent_at: string | null;
   started_at: string | null;
   completed_at: string | null;
+  last_error_message: string | null;
+  send_attempts: number;
 }
 
 interface Campaign {
@@ -124,12 +127,25 @@ const Campaign = () => {
     const statusMap: Record<string, { label: string; className: string }> = {
       pending: { label: "Pendente", className: "bg-warning text-white" },
       sent: { label: "Enviado", className: "bg-info text-white" },
-      started: { label: "Iniciado", className: "bg-info text-white" },
+      failed: { label: "Falha", className: "bg-destructive text-white" },
+      in_progress: { label: "Em Andamento", className: "bg-info text-white" },
       completed: { label: "Concluído", className: "bg-success text-white" },
     };
 
     const statusInfo = statusMap[status] || statusMap.pending;
     return <Badge className={statusInfo.className}>{statusInfo.label}</Badge>;
+  };
+
+  const getButtonText = (assessment: Assessment, isSending: boolean) => {
+    if (isSending) return "Enviando...";
+    if (assessment.status === "pending") return "Enviar Convite";
+    if (assessment.status === "failed") return "Tentar Novamente";
+    if (assessment.status === "sent" || assessment.status === "in_progress") return "Reenviar";
+    return "Enviado";
+  };
+
+  const canResend = (assessment: Assessment) => {
+    return ["pending", "sent", "failed", "in_progress"].includes(assessment.status);
   };
 
   if (loading) {
@@ -271,21 +287,41 @@ const Campaign = () => {
                           </p>
                           <div className="flex items-center gap-2">
                             {getStatusBadge(assessment.status)}
+                            {assessment.send_attempts > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {assessment.send_attempts} {assessment.send_attempts === 1 ? "tentativa" : "tentativas"}
+                              </Badge>
+                            )}
+                            {assessment.last_error_message && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <AlertCircle className="w-4 h-4 text-destructive" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-xs">{assessment.last_error_message}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
                         </div>
                         <Button
-                          variant="outline"
+                          variant={assessment.status === "failed" ? "destructive" : "outline"}
                           size="sm"
-                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                          disabled={assessment.status !== "pending" || sendingInvitation === assessment.id}
+                          className={assessment.status === "failed" 
+                            ? "" 
+                            : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                          }
+                          disabled={!canResend(assessment) || sendingInvitation === assessment.id}
                           onClick={() => handleSendInvitation(assessment)}
                         >
-                          <Mail className="w-4 h-4 mr-2" />
-                          {sendingInvitation === assessment.id
-                            ? "Enviando..."
-                            : assessment.status === "pending"
-                            ? "Enviar Convite"
-                            : "Enviado"}
+                          {assessment.status === "pending" ? (
+                            <Mail className="w-4 h-4 mr-2" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                          )}
+                          {getButtonText(assessment, sendingInvitation === assessment.id)}
                         </Button>
                       </div>
                     </Card>
