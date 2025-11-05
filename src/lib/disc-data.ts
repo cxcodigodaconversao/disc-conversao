@@ -227,18 +227,78 @@ export const VALUES_GROUPS: ValueGroup[] = [
 export const DISC_PROFILES = {
   D: {
     name: 'Diretor',
-    description: 'Orientado para resultados, decisivo e direto'
+    description: 'Orientado para resultados, decisivo e direto',
+    fullDescription: 'O perfil Diretor é caracterizado por uma forte orientação para resultados e conquistas. São pessoas decisivas, que assumem riscos calculados e buscam desafios. Tendem a ser diretas em sua comunicação e focadas em eficiência. Valorizam autonomia e poder de decisão.',
+    strengths: [
+      'Tomada de decisões rápidas',
+      'Foco em resultados',
+      'Liderança natural',
+      'Aceitação de desafios',
+      'Iniciativa e proatividade'
+    ],
+    challenges: [
+      'Pode ser impaciente',
+      'Tendência a ser muito direto',
+      'Dificuldade em delegar',
+      'Foco excessivo em tarefas em detrimento de pessoas'
+    ],
+    idealEnvironment: 'Ambientes que oferecem autonomia, desafios constantes e oportunidades de crescimento rápido'
   },
   I: {
     name: 'Comunicador',
-    description: 'Entusiasta, persuasivo e sociável'
+    description: 'Entusiasta, persuasivo e sociável',
+    fullDescription: 'O perfil Comunicador é marcado por habilidades sociais excepcionais e entusiasmo contagiante. São pessoas persuasivas, otimistas e que valorizam relacionamentos. Excelentes em networking e em criar ambientes positivos. Motivados por reconhecimento e interação social.',
+    strengths: [
+      'Excelentes habilidades de comunicação',
+      'Capacidade de influenciar e persuadir',
+      'Otimismo e energia positiva',
+      'Criatividade e inovação',
+      'Construção de relacionamentos'
+    ],
+    challenges: [
+      'Pode perder foco em detalhes',
+      'Tendência a ser desorganizado',
+      'Dificuldade com tarefas repetitivas',
+      'Pode prometer demais'
+    ],
+    idealEnvironment: 'Ambientes colaborativos, dinâmicos e que valorizam criatividade e interação social'
   },
   S: {
     name: 'Planejador',
-    description: 'Paciente, confiável e leal'
+    description: 'Paciente, confiável e leal',
+    fullDescription: 'O perfil Planejador se destaca pela estabilidade, paciência e lealdade. São pessoas confiáveis, que valorizam harmonia e consistência. Excelentes ouvintes e colaboradores. Preferem ambientes previsíveis e mudanças graduais. Motivados por segurança e pertencimento.',
+    strengths: [
+      'Lealdade e comprometimento',
+      'Paciência e persistência',
+      'Excelente trabalho em equipe',
+      'Capacidade de ouvir ativamente',
+      'Confiabilidade'
+    ],
+    challenges: [
+      'Resistência a mudanças',
+      'Dificuldade em dizer não',
+      'Pode evitar conflitos necessários',
+      'Lentidão na tomada de decisões'
+    ],
+    idealEnvironment: 'Ambientes estáveis, previsíveis e que valorizam trabalho em equipe e relacionamentos duradouros'
   },
   C: {
     name: 'Analista',
-    description: 'Preciso, sistemático e detalhista'
+    description: 'Preciso, sistemático e detalhista',
+    fullDescription: 'O perfil Analista é caracterizado por precisão, atenção aos detalhes e pensamento sistemático. São pessoas que valorizam qualidade, exatidão e seguem procedimentos. Excelentes em análise e resolução de problemas complexos. Motivados por precisão e perfeição.',
+    strengths: [
+      'Atenção excepcional aos detalhes',
+      'Pensamento analítico e lógico',
+      'Alto padrão de qualidade',
+      'Organização e sistematização',
+      'Precisão e exatidão'
+    ],
+    challenges: [
+      'Tendência ao perfeccionismo',
+      'Pode ser excessivamente crítico',
+      'Lentidão em decisões por excesso de análise',
+      'Dificuldade com ambiguidade'
+    ],
+    idealEnvironment: 'Ambientes estruturados, que valorizam precisão, qualidade e permitem tempo para análise detalhada'
   }
 };

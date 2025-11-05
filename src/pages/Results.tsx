@@ -51,14 +51,14 @@ export default function Results() {
       try {
         const { data, error } = await supabase.functions.invoke(
           'generate-pdf-report',
-          { body: { result_id: result.id } }
+          { body: { assessment_id: id } }
         );
 
         if (error) throw error;
         
-        if (data.report_url) {
-          window.open(data.report_url, '_blank');
-          setResult({ ...result, report_url: data.report_url });
+        if (data.pdf_url) {
+          window.open(data.pdf_url, '_blank');
+          setResult({ ...result, report_url: data.pdf_url });
         }
       } catch (error) {
         console.error('Error generating PDF:', error);
@@ -88,24 +88,25 @@ export default function Results() {
     );
   }
 
+  // DISC data on 0-40 scale for accurate visualization
   const discData = [
     {
-      name: 'D',
+      name: 'D (Diretor)',
       Natural: result.natural_d,
       Adaptado: result.adapted_d
     },
     {
-      name: 'I',
+      name: 'I (Comunicador)',
       Natural: result.natural_i,
       Adaptado: result.adapted_i
     },
     {
-      name: 'S',
+      name: 'S (Planejador)',
       Natural: result.natural_s,
       Adaptado: result.adapted_s
     },
     {
-      name: 'C',
+      name: 'C (Analista)',
       Natural: result.natural_c,
       Adaptado: result.adapted_c
     }
@@ -185,11 +186,11 @@ export default function Results() {
             <BarChart data={discData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
-              <YAxis domain={[0, 100]} />
+              <YAxis domain={[0, 40]} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="Natural" fill="hsl(var(--primary))" />
-              <Bar dataKey="Adaptado" fill="hsl(var(--secondary))" />
+              <Bar dataKey="Natural" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="Adaptado" fill="hsl(var(--secondary))" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -234,7 +235,7 @@ export default function Results() {
             <RadarChart data={valuesData}>
               <PolarGrid />
               <PolarAngleAxis dataKey="subject" />
-              <PolarRadiusAxis domain={[0, 100]} />
+              <PolarRadiusAxis domain={[0, 60]} />
               <Radar name="Valores" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
             </RadarChart>
           </ResponsiveContainer>

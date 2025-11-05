@@ -46,29 +46,30 @@ serve(async (req) => {
     const adaptedResponses = responses.filter((r: Response) => r.stage === 'adapted');
     const valuesResponses = responses.filter((r: Response) => r.stage === 'values');
 
-    // Calculate DISC scores (weights: 1st=4pts, 2nd=3pts, 3rd=2pts, 4th=1pt)
+    // Calculate DISC scores using correct weighted formula
+    // Rank 1 (Most) = 4 points, Rank 2 = 3 points, Rank 3 = 2 points, Rank 4 (Least) = 1 point
     const calculateDISC = (responses: Response[]) => {
       const scores = { D: 0, I: 0, S: 0, C: 0 };
       
       responses.forEach((r: Response) => {
-        const points = 5 - r.rank; // 1st rank = 4pts, 2nd = 3pts, etc.
+        const points = 5 - r.rank; // rank 1 = 4pts, rank 2 = 3pts, rank 3 = 2pts, rank 4 = 1pt
         const factor = r.item_factor as 'D' | 'I' | 'S' | 'C';
         scores[factor] += points;
       });
 
-      // Convert to percentage (max = 10 groups * 4 points = 40)
+      // Return raw scores (0-40 scale, where max = 10 groups * 4 points)
       return {
-        D: Math.round((scores.D / 40) * 100),
-        I: Math.round((scores.I / 40) * 100),
-        S: Math.round((scores.S / 40) * 100),
-        C: Math.round((scores.C / 40) * 100),
+        D: scores.D,
+        I: scores.I,
+        S: scores.S,
+        C: scores.C,
       };
     };
 
     const naturalDISC = calculateDISC(naturalResponses);
     const adaptedDISC = calculateDISC(adaptedResponses);
 
-    // Calculate Delta
+    // Calculate Delta (absolute difference between natural and adapted)
     const delta = {
       D: Math.abs(naturalDISC.D - adaptedDISC.D),
       I: Math.abs(naturalDISC.I - adaptedDISC.I),
@@ -76,9 +77,10 @@ serve(async (req) => {
       C: Math.abs(naturalDISC.C - adaptedDISC.C),
     };
     const totalTension = delta.D + delta.I + delta.S + delta.C;
-    const tensionLevel = totalTension < 20 ? 'low' : totalTension < 40 ? 'moderate' : 'high';
+    // Tension levels based on 0-40 scale: low < 8, moderate < 16, high >= 16
+    const tensionLevel = totalTension < 8 ? 'low' : totalTension < 16 ? 'moderate' : 'high';
 
-    // Calculate Values (weights: 1st=6pts, 2nd=5pts, ..., 6th=1pt)
+    // Calculate Values (weights: 1st=6pts, 2nd=5pts, 3rd=4pts, 4th=3pts, 5th=2pts, 6th=1pt)
     const calculateValues = (responses: Response[]) => {
       const scores: Record<string, number> = {
         theoretical: 0,
@@ -90,18 +92,18 @@ serve(async (req) => {
       };
 
       responses.forEach((r: Response) => {
-        const points = 7 - r.rank;
+        const points = 7 - r.rank; // rank 1 = 6pts, rank 2 = 5pts, ..., rank 6 = 1pt
         scores[r.item_factor] += points;
       });
 
-      // Convert to percentage (max = 10 groups * 6 points = 60)
+      // Return raw scores (0-60 scale, where max = 10 groups * 6 points)
       return {
-        theoretical: Math.round((scores.theoretical / 60) * 100),
-        economic: Math.round((scores.economic / 60) * 100),
-        aesthetic: Math.round((scores.aesthetic / 60) * 100),
-        social: Math.round((scores.social / 60) * 100),
-        political: Math.round((scores.political / 60) * 100),
-        spiritual: Math.round((scores.spiritual / 60) * 100),
+        theoretical: scores.theoretical,
+        economic: scores.economic,
+        aesthetic: scores.aesthetic,
+        social: scores.social,
+        political: scores.political,
+        spiritual: scores.spiritual,
       };
     };
 
@@ -116,7 +118,8 @@ serve(async (req) => {
     ].sort((a, b) => b.score - a.score);
 
     const primaryProfile = discArray[0].name;
-    const secondaryProfile = discArray[1].score >= 50 ? discArray[1].name : null;
+    // Secondary profile if score >= 20 (on 0-40 scale, equivalent to 50% on 0-100 scale)
+    const secondaryProfile = discArray[1].score >= 20 ? discArray[1].name : null;
 
     // Calculate competencies (based on DISC scores)
     const competencies = {
@@ -161,7 +164,7 @@ serve(async (req) => {
       concentration_a: adaptedDISC.C,
     };
 
-    // Calculate Jung types
+    // Calculate Jung types based on DISC correlations
     const jungScores = {
       extroversion: Math.round((naturalDISC.D + naturalDISC.I) / 2),
       introversion: Math.round((naturalDISC.S + naturalDISC.C) / 2),
@@ -175,7 +178,7 @@ serve(async (req) => {
       (jungScores.extroversion > jungScores.introversion ? 'E' : 'I') +
       (jungScores.intuition > jungScores.sensation ? 'N' : 'S') +
       (jungScores.thinking > jungScores.feeling ? 'T' : 'F') +
-      (naturalDISC.C > 50 ? 'J' : 'P');
+      (naturalDISC.C > 20 ? 'J' : 'P'); // C > 20 on 0-40 scale (equivalent to 50% on 0-100)
 
     // Calculate leadership styles
     const leadership = {
@@ -192,25 +195,26 @@ serve(async (req) => {
       let idealCustomer = '';
       let salesApproach = '';
 
-      if (naturalDISC.D >= 60) {
+      // Adjusted thresholds for 0-40 scale (24 = 60% of 40)
+      if (naturalDISC.D >= 24) {
         strengths.push('Fechamento direto e rápido');
         strengths.push('Foco em resultados');
         weaknesses.push('Pode ser muito agressivo');
         idealCustomer = 'Decisores de alto nível que valorizam eficiência';
         salesApproach = 'Abordagem direta, focada em ROI e resultados tangíveis';
-      } else if (naturalDISC.I >= 60) {
+      } else if (naturalDISC.I >= 24) {
         strengths.push('Construção de relacionamentos');
         strengths.push('Entusiasmo contagiante');
         weaknesses.push('Pode perder foco em detalhes');
         idealCustomer = 'Clientes que valorizam networking e experiências';
         salesApproach = 'Abordagem social, storytelling e demonstrações empolgantes';
-      } else if (naturalDISC.S >= 60) {
+      } else if (naturalDISC.S >= 24) {
         strengths.push('Paciência no ciclo de vendas');
         strengths.push('Fidelização de clientes');
         weaknesses.push('Dificuldade com pressão e urgência');
         idealCustomer = 'Clientes que precisam de suporte contínuo';
         salesApproach = 'Abordagem consultiva, construindo confiança ao longo do tempo';
-      } else if (naturalDISC.C >= 60) {
+      } else if (naturalDISC.C >= 24) {
         strengths.push('Apresentações detalhadas');
         strengths.push('Precisão técnica');
         weaknesses.push('Lentidão no fechamento');
