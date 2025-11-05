@@ -31,6 +31,51 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
     return () => clearInterval(timer);
   }, [startTime]);
 
+  // CAMADA 4: Continuar de Onde Parou
+  useEffect(() => {
+    const resumeProgress = async () => {
+      try {
+        const { data: lastResponse } = await supabase
+          .from('responses')
+          .select('stage, group_number')
+          .eq('assessment_id', assessmentId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (lastResponse) {
+          const stageMap: Record<string, Stage> = {
+            'natural': 'natural',
+            'adapted': 'adapted',
+            'values': 'values'
+          };
+          
+          const resumeStage = stageMap[lastResponse.stage] || 'natural';
+          
+          // Se estamos na mesma etapa, continuar no próximo grupo
+          // Se mudou de etapa, começar do grupo 1 da nova etapa
+          if (resumeStage === lastResponse.stage) {
+            setStage(resumeStage);
+            
+            // Determinar o total de grupos baseado na etapa
+            const totalGroups = resumeStage === 'values' ? 10 : 10;
+            
+            // Se não completou a etapa, continuar no próximo grupo
+            if (lastResponse.group_number < totalGroups) {
+              setCurrentGroup(lastResponse.group_number + 1);
+              toast.info('Continuando de onde você parou!');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error resuming progress:', error);
+        // Não mostrar erro ao usuário, apenas começar do início
+      }
+    };
+    
+    resumeProgress();
+  }, [assessmentId]);
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;

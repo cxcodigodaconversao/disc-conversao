@@ -3,8 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Brain } from "lucide-react";
+import { Brain, CheckCircle } from "lucide-react";
 import QuestionnaireFlow from "@/components/questionnaire/QuestionnaireFlow";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function Assessment() {
   const { id } = useParams();
@@ -25,6 +27,13 @@ export default function Assessment() {
         .single();
 
       if (error) throw error;
+      
+      // CAMADA 1: Verificação de Status - Redirecionar se já concluído
+      if (data.status === 'completed') {
+        navigate(`/results/${id}`);
+        return;
+      }
+      
       setAssessment(data);
     } catch (error) {
       console.error("Error fetching assessment:", error);
@@ -56,6 +65,29 @@ export default function Assessment() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5">
         <Brain className="w-12 h-12 animate-pulse text-primary" />
+      </div>
+    );
+  }
+
+  // CAMADA 2: Tela de "Assessment Já Concluído"
+  if (assessment?.status === 'completed') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
+        <Card className="p-8 max-w-md text-center">
+          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+          <h1 className="text-2xl font-bold mb-4">Assessment Já Concluído!</h1>
+          <p className="text-muted-foreground mb-2">
+            Você já completou este assessment.
+          </p>
+          {assessment.completed_at && (
+            <p className="text-sm text-muted-foreground mb-6">
+              Concluído em {format(new Date(assessment.completed_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+            </p>
+          )}
+          <Button onClick={() => navigate(`/results/${id}`)}>
+            Ver Meus Resultados
+          </Button>
+        </Card>
       </div>
     );
   }
