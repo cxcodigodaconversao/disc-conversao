@@ -215,6 +215,7 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
         {/* Question */}
         <Card className="p-8">
           <RankingQuestion
+            key={`${stage}-${currentGroup}`}
             items={getCurrentItems()}
             onComplete={saveResponses}
             maxRank={stageInfo.maxRank}
