@@ -43,7 +43,9 @@ const handler = async (req: Request): Promise<Response> => {
     const currentAttempts = currentAssessment?.send_attempts || 0;
 
     // Generate assessment link using APP_URL environment variable
-    const appUrl = Deno.env.get("APP_URL") || "https://disc-conversao.netlify.app";
+    // Normalize APP_URL by removing trailing slash to prevent double-slash in URLs
+    let appUrl = Deno.env.get("APP_URL") || "https://disc-conversao.netlify.app";
+    appUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl;
     const assessmentLink = `${appUrl}/assessment/${assessmentId}`;
     
     console.log("Assessment link generated:", assessmentLink);
