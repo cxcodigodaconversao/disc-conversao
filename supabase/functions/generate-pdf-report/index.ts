@@ -204,8 +204,14 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
         throw new Error('Invalid image size');
       }
       
-      // Convert to base64 in chunks to avoid stack overflow
-      const base64 = base64Encode(uint8Array);
+      // Convert to base64
+      let base64 = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, i + chunkSize);
+        base64 += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      base64 = btoa(base64);
       const imgData = `data:image/png;base64,${base64}`;
       
       doc.addImage(imgData, 'PNG', x, y, width, height);
@@ -479,6 +485,284 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     yPos += 6;
   });
 
+  // Declarar variáveis DISC no início
+  const naturalD = safeGetValue(result, 'natural_d', 0);
+  const naturalI = safeGetValue(result, 'natural_i', 0);
+  const naturalS = safeGetValue(result, 'natural_s', 0);
+  const naturalC = safeGetValue(result, 'natural_c', 0);
+  const adaptedD = safeGetValue(result, 'adapted_d', 0);
+  const adaptedI = safeGetValue(result, 'adapted_i', 0);
+  const adaptedS = safeGetValue(result, 'adapted_s', 0);
+  const adaptedC = safeGetValue(result, 'adapted_c', 0);
+
+  // ========== NOVA PÁGINA: GRÁFICO DE INTENSIDADE COM DESCRITORES ==========
+  addPage();
+  addSectionTitle('GRÁFICO DE INTENSIDADE COM DESCRITORES');
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(107, 114, 128);
+  const descriptorIntro = 'Esta tabela mostra os adjetivos que descrevem diferentes níveis de intensidade para cada fator DISC. Os valores destacados indicam o seu perfil natural.';
+  const descIntroLines = wrapText(descriptorIntro, contentWidth);
+  descIntroLines.forEach((line: string) => {
+    doc.text(line, margin, yPos);
+    yPos += 5;
+  });
+  yPos += 10;
+
+  // Tabela de descritores
+  const DISC_DESCRIPTORS = [
+    { level: 99, D: "Arrogante", I: "Insinuante", S: "Hesitante", C: "Temeroso" },
+    { level: 94, D: "Egocêntrico", I: "Eloquente", S: "Amável", C: "Calculista" },
+    { level: 88, D: "Dominador", I: "Inspirador", S: "Previsível", C: "Reservado" },
+    { level: 83, D: "Audacioso", I: "Sociável", S: "Leal", C: "Sistemático" },
+    { level: 78, D: "Firme", I: "Expressivo", S: "Paciente", C: "Meticuloso" },
+    { level: 73, D: "Ativo", I: "Otimista", S: "Sereno", C: "Cuidadoso" },
+    { level: 65, D: "Determinado", I: "Positivo", S: "Consistente", C: "Analítico" },
+    { level: 60, D: "Objetivo", I: "Amigável", S: "Receptivo", C: "Reflexivo" },
+    { level: 54, D: "Assertivo", I: "Cordial", S: "Moderado", C: "Equilibrado" },
+    { level: 50, D: "Equilibrado", I: "Equilibrado", S: "Equilibrado", C: "Equilibrado" },
+    { level: 46, D: "Cauteloso", I: "Discreto", S: "Adaptável", C: "Flexível" },
+    { level: 41, D: "Calculado", I: "Formal", S: "Ágil", C: "Rápido" },
+    { level: 35, D: "Hesitante", I: "Contido", S: "Inquieto", C: "Independente" },
+    { level: 30, D: "Pacífico", I: "Introspectivo", S: "Impaciente", C: "Autônomo" },
+    { level: 21, D: "Passivo", I: "Retraído", S: "Versátil", C: "Abstrato" },
+    { level: 15, D: "Submisso", I: "Distante", S: "Inquieto", C: "Conceitual" }
+  ];
+
+  // Header da tabela
+  const colWidth = (contentWidth - 20) / 5;
+  const rowHeight = 7;
+  
+  doc.setFillColor(59, 130, 246);
+  doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text('Nível', margin + 2, yPos + 5);
+  doc.text('D', margin + colWidth + 2, yPos + 5);
+  doc.text('I', margin + colWidth * 2 + 2, yPos + 5);
+  doc.text('S', margin + colWidth * 3 + 2, yPos + 5);
+  doc.text('C', margin + colWidth * 4 + 2, yPos + 5);
+  yPos += rowHeight;
+
+  // Linhas da tabela
+  DISC_DESCRIPTORS.forEach((desc, index) => {
+    checkPageBreak(rowHeight + 2);
+    
+    const isNearD = Math.abs(desc.level - naturalD) < 4;
+    const isNearI = Math.abs(desc.level - naturalI) < 4;
+    const isNearS = Math.abs(desc.level - naturalS) < 4;
+    const isNearC = Math.abs(desc.level - naturalC) < 4;
+    
+    // Alternating background
+    if (index % 2 === 0) {
+      doc.setFillColor(249, 250, 251);
+      doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
+    }
+    
+    // Nível
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(107, 114, 128);
+    doc.text(desc.level.toString(), margin + 2, yPos + 5);
+    
+    // D
+    doc.setFont('helvetica', 'normal');
+    if (isNearD) {
+      doc.setFillColor(239, 68, 68, 0.3);
+      doc.rect(margin + colWidth, yPos, colWidth, rowHeight, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(239, 68, 68);
+    } else {
+      doc.setTextColor(55, 65, 81);
+    }
+    doc.text(desc.D, margin + colWidth + 2, yPos + 5);
+    
+    // I
+    doc.setFont('helvetica', 'normal');
+    if (isNearI) {
+      doc.setFillColor(245, 158, 11, 0.3);
+      doc.rect(margin + colWidth * 2, yPos, colWidth, rowHeight, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(245, 158, 11);
+    } else {
+      doc.setTextColor(55, 65, 81);
+    }
+    doc.text(desc.I, margin + colWidth * 2 + 2, yPos + 5);
+    
+    // S
+    doc.setFont('helvetica', 'normal');
+    if (isNearS) {
+      doc.setFillColor(16, 185, 129, 0.3);
+      doc.rect(margin + colWidth * 3, yPos, colWidth, rowHeight, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(16, 185, 129);
+    } else {
+      doc.setTextColor(55, 65, 81);
+    }
+    doc.text(desc.S, margin + colWidth * 3 + 2, yPos + 5);
+    
+    // C
+    doc.setFont('helvetica', 'normal');
+    if (isNearC) {
+      doc.setFillColor(59, 130, 246, 0.3);
+      doc.rect(margin + colWidth * 4, yPos, colWidth, rowHeight, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(59, 130, 246);
+    } else {
+      doc.setTextColor(55, 65, 81);
+    }
+    doc.text(desc.C, margin + colWidth * 4 + 2, yPos + 5);
+    
+    // Border
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.1);
+    doc.rect(margin, yPos, contentWidth, rowHeight);
+    
+    yPos += rowHeight;
+  });
+
+  // ========== 4 PÁGINAS DE ANÁLISE INDIVIDUAL DE FATORES ==========
+  const factorsToAnalyze: Array<{ key: 'D' | 'I' | 'S' | 'C', title: string, color: [number, number, number] }> = [
+    { key: 'D', title: 'COMO LIDA COM PROBLEMAS E DESAFIOS', color: [239, 68, 68] },
+    { key: 'I', title: 'COMO LIDA COM AS PESSOAS', color: [245, 158, 11] },
+    { key: 'S', title: 'COMO RESPONDE AO RITMO E MUDANÇAS', color: [16, 185, 129] },
+    { key: 'C', title: 'COMO RESPONDE A REGRAS E PROCEDIMENTOS', color: [59, 130, 246] }
+  ];
+
+  const factorValues = {
+    D: { natural: naturalD, adapted: adaptedD },
+    I: { natural: naturalI, adapted: adaptedI },
+    S: { natural: naturalS, adapted: adaptedS },
+    C: { natural: naturalC, adapted: adaptedC }
+  };
+
+  factorsToAnalyze.forEach(factor => {
+    addPage();
+    addSectionTitle(factor.title, factor.color);
+    
+    const natural = factorValues[factor.key].natural;
+    const adapted = factorValues[factor.key].adapted;
+    
+    // Gráfico de barras horizontais
+    const barHeight = 12;
+    const maxBarWidth = contentWidth - 55;
+    const labelWidth = 50;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(factor.color[0], factor.color[1], factor.color[2]);
+    doc.text('Intensidade:', margin, yPos);
+    yPos += 8;
+    
+    // Barra Natural
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(55, 65, 81);
+    doc.text('Natural:', margin, yPos + 8);
+    
+    doc.setFillColor(...factor.color);
+    const naturalWidth = (natural / 100) * maxBarWidth;
+    doc.rect(margin + labelWidth, yPos, naturalWidth, barHeight, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin + labelWidth, yPos, maxBarWidth, barHeight);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    if (naturalWidth > 15) {
+      doc.text(natural.toString(), margin + labelWidth + naturalWidth - 12, yPos + 8);
+    } else {
+      doc.setTextColor(0, 0, 0);
+      doc.text(natural.toString(), margin + labelWidth + naturalWidth + 3, yPos + 8);
+    }
+    
+    yPos += barHeight + 8;
+    
+    // Barra Adaptado
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(55, 65, 81);
+    doc.text('Adaptado:', margin, yPos + 8);
+    
+    doc.setFillColor(75, 85, 99);
+    const adaptedWidth = (adapted / 100) * maxBarWidth;
+    doc.rect(margin + labelWidth, yPos, adaptedWidth, barHeight, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin + labelWidth, yPos, maxBarWidth, barHeight);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    if (adaptedWidth > 15) {
+      doc.text(adapted.toString(), margin + labelWidth + adaptedWidth - 12, yPos + 8);
+    } else {
+      doc.setTextColor(0, 0, 0);
+      doc.text(adapted.toString(), margin + labelWidth + adaptedWidth + 3, yPos + 8);
+    }
+    
+    yPos += barHeight + 15;
+    
+    // Análise textual
+    const diff = adapted - natural;
+    const direction = diff > 5 ? 'crescente' : diff < -5 ? 'decrescente' : 'equilibrado';
+    
+    // Traço Natural
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(factor.color[0], factor.color[1], factor.color[2]);
+    doc.text('TRAÇO NATURAL:', margin, yPos);
+    yPos += 7;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    const naturalDescription = getFactorNaturalDescription(factor.key, natural);
+    const natLines = wrapText(naturalDescription, contentWidth);
+    natLines.forEach((line: string) => {
+      checkPageBreak(6);
+      doc.text(line, margin, yPos);
+      yPos += 5;
+    });
+    yPos += 8;
+    
+    // Adaptação
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(factor.color[0], factor.color[1], factor.color[2]);
+    doc.text(`ADAPTAÇÃO ${direction.toUpperCase()}:`, margin, yPos);
+    yPos += 7;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    const adaptedDescription = getFactorAdaptedDescription(factor.key, direction);
+    const adaptLines = wrapText(adaptedDescription, contentWidth);
+    adaptLines.forEach((line: string) => {
+      checkPageBreak(6);
+      doc.text(line, margin, yPos);
+      yPos += 5;
+    });
+    yPos += 8;
+    
+    // Análise da diferença
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(factor.color[0], factor.color[1], factor.color[2]);
+    doc.text('ANÁLISE:', margin, yPos);
+    yPos += 7;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    const analysisText = getFactorAnalysisText(factor.key, natural, adapted);
+    const analysisLines = wrapText(analysisText, contentWidth);
+    analysisLines.forEach((line: string) => {
+      checkPageBreak(6);
+      doc.text(line, margin, yPos);
+      yPos += 5;
+    });
+  });
+
   // ========== PÁGINA 5: PERFIL NATURAL ==========
   addPage();
   addSectionTitle('INTENSIDADE DO PERFIL NATURAL');
@@ -489,11 +773,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   doc.text('(Como você realmente é)', margin, yPos);
   yPos += 15;
 
-  // Scores Table
-  const naturalD = safeGetValue(result, 'natural_d', 0);
-  const naturalI = safeGetValue(result, 'natural_i', 0);
-  const naturalS = safeGetValue(result, 'natural_s', 0);
-  const naturalC = safeGetValue(result, 'natural_c', 0);
+  // Scores Table (variáveis já declaradas acima)
 
   const naturalScoresData = [
     { label: 'D (Dominância)', value: `${naturalD}/100`, color: [239, 68, 68] },
@@ -551,11 +831,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   doc.text('(Como você se comporta no trabalho)', margin, yPos);
   yPos += 15;
 
-  // Adapted scores Table
-  const adaptedD = safeGetValue(result, 'adapted_d', 0);
-  const adaptedI = safeGetValue(result, 'adapted_i', 0);
-  const adaptedS = safeGetValue(result, 'adapted_s', 0);
-  const adaptedC = safeGetValue(result, 'adapted_c', 0);
+  // Adapted scores Table (variáveis já declaradas acima)
 
   const adaptedScoresData = [
     { label: 'D (Dominância)', value: `${adaptedD}/100`, color: [239, 68, 68] },
@@ -785,73 +1061,63 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     }
   }
 
-  // ========== PÁGINA 14: GRÁFICOS CONSOLIDADOS ==========
+  // ========== PÁGINA: GRÁFICOS CONSOLIDADOS ==========
   if (chartImages.disc || chartImages.values || chartImages.leadership || chartImages.competencies) {
     addPage();
     addSectionTitle('VISÃO GERAL - TODOS OS GRÁFICOS', [107, 114, 128]);
     
-    const chartWidth = (contentWidth - 10) / 2;
-    const chartHeight = 65;
-    let chartsInRow = 0;
-    let rowY = yPos;
+    const chartWidth = (contentWidth - 15) / 2;
+    const chartHeight = 70;
+    let currentChartY = yPos;
 
-    // DISC chart
+    // Row 1: DISC and Values
     if (chartImages.disc) {
-      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(59, 130, 246);
-      doc.text('Perfil DISC', xPos, rowY - 3);
-      await addImageFromUrl(chartImages.disc, xPos, rowY, chartWidth, chartHeight);
-      chartsInRow++;
-      if (chartsInRow === 2) {
-        chartsInRow = 0;
-        rowY += chartHeight + 15;
-        checkPageBreak(chartHeight + 20);
-      }
+      doc.setFontSize(11);
+      doc.setTextColor(239, 68, 68);
+      doc.text('Perfil DISC', margin, currentChartY);
+      currentChartY += 6;
+      
+      await addImageFromUrl(chartImages.disc, margin, currentChartY, chartWidth, chartHeight);
     }
 
-    // Values chart
+    let rightChartY = yPos;
     if (chartImages.values) {
-      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(11);
       doc.setTextColor(139, 92, 246);
-      doc.text('Valores Motivacionais', xPos, rowY - 3);
-      await addImageFromUrl(chartImages.values, xPos, rowY, chartWidth, chartHeight);
-      chartsInRow++;
-      if (chartsInRow === 2) {
-        chartsInRow = 0;
-        rowY += chartHeight + 15;
-        checkPageBreak(chartHeight + 20);
-      }
+      doc.text('Valores Motivacionais', margin + chartWidth + 15, rightChartY);
+      rightChartY += 6;
+      
+      await addImageFromUrl(chartImages.values, margin + chartWidth + 15, rightChartY, chartWidth, chartHeight);
     }
 
-    // Leadership chart
+    // Row 2: Leadership and Competencies
+    currentChartY += chartHeight + 18;
+    checkPageBreak(chartHeight + 25);
+    
     if (chartImages.leadership) {
-      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(11);
       doc.setTextColor(16, 185, 129);
-      doc.text('Estilo de Liderança', xPos, rowY - 3);
-      await addImageFromUrl(chartImages.leadership, xPos, rowY, chartWidth, chartHeight);
-      chartsInRow++;
-      if (chartsInRow === 2) {
-        chartsInRow = 0;
-        rowY += chartHeight + 15;
-        checkPageBreak(chartHeight + 20);
-      }
+      doc.text('Estilo de Liderança', margin, currentChartY);
+      currentChartY += 6;
+      
+      await addImageFromUrl(chartImages.leadership, margin, currentChartY, chartWidth, chartHeight);
     }
 
-    // Competencies chart
+    rightChartY += chartHeight + 18;
     if (chartImages.competencies) {
-      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(11);
       doc.setTextColor(236, 72, 153);
-      doc.text('Mapa de Competências', xPos, rowY - 3);
-      await addImageFromUrl(chartImages.competencies, xPos, rowY, chartWidth, chartHeight);
+      doc.text('Mapa de Competências', margin + chartWidth + 15, rightChartY);
+      rightChartY += 6;
+      
+      await addImageFromUrl(chartImages.competencies, margin + chartWidth + 15, rightChartY, chartWidth, chartHeight);
     }
+
+    yPos = Math.max(currentChartY, rightChartY) + chartHeight + 15;
   }
 
   // ========== PÁGINA 15: PLANO DE AÇÃO ==========
@@ -1188,4 +1454,75 @@ function getActionPlan(profileName: string | null, tensionLevel: string): string
   }
 
   return profilePlan[tensionLevel] || profilePlan['medium'];
+}
+
+// Funções auxiliares para análise de fatores individuais
+function getFactorNaturalDescription(factor: 'D' | 'I' | 'S' | 'C', value: number): string {
+  const descriptions = {
+    D: {
+      high: 'Você naturalmente assume controle de situações, busca desafios e toma decisões rapidamente. Prefere estar em posição de liderança e não tem medo de enfrentar problemas de frente. Sua assertividade é uma característica central do seu perfil.',
+      medium: 'Você demonstra assertividade quando necessário, mas não precisa estar sempre no controle. Consegue equilibrar liderança com colaboração, adaptando seu estilo conforme a situação exige.',
+      low: 'Você prefere abordagens mais diplomáticas e menos diretas ao lidar com problemas. Tende a evitar confrontos e valoriza consenso. Sua força está em mediar e facilitar, não em impor decisões.'
+    },
+    I: {
+      high: 'Você é naturalmente sociável, expressivo e se energiza através de interações com pessoas. Comunicação é sua forte característica, e você tem facilidade para influenciar e inspirar outros. Ambientes sociais são onde você prospera.',
+      medium: 'Você consegue ser sociável quando necessário, mas também valoriza momentos de trabalho mais focado. Sua comunicação é eficaz sem ser excessivamente expansiva.',
+      low: 'Você prefere interações mais limitadas e profundas a networking amplo. Tende a ser mais reservado e reflexivo. Sua força está em comunicação escrita ou em grupos pequenos.'
+    },
+    S: {
+      high: 'Você valoriza estabilidade, consistência e ambientes previsíveis. É paciente, leal e prefere processos estabelecidos. Mudanças abruptas podem ser desconfortáveis. Sua confiabilidade é um ativo importante.',
+      medium: 'Você aprecia estabilidade mas consegue adaptar-se a mudanças quando necessário. Equilibra necessidade de previsibilidade com flexibilidade razoável.',
+      low: 'Você é naturalmente adaptável e confortável com mudanças. Prefere variedade a rotina e pode se sentir entediado em ambientes muito estáveis. Sua versatilidade é uma força.'
+    },
+    C: {
+      high: 'Você valoriza precisão, qualidade e processos sistemáticos. Atenção a detalhes é natural para você, e você tem padrões elevados. Prefere tempo adequado para análise e documentação completa.',
+      medium: 'Você presta atenção a detalhes importantes mas não se perde em minúcias desnecessárias. Consegue equilibrar qualidade com pragmatismo.',
+      low: 'Você prefere visão geral a detalhes minuciosos. Trabalha de forma mais intuitiva e flexível, não se prendendo excessivamente a processos.'
+    }
+  };
+  
+  const level = value > 60 ? 'high' : value > 40 ? 'medium' : 'low';
+  return descriptions[factor][level];
+}
+
+function getFactorAdaptedDescription(factor: 'D' | 'I' | 'S' | 'C', direction: string): string {
+  const descriptions = {
+    D: {
+      crescente: 'Você está se adaptando para ser mais assertivo e direto do que sua natureza. Isso pode indicar que seu ambiente atual exige mais liderança e tomada rápida de decisões.',
+      decrescente: 'Você está moderando sua assertividade natural. Isso pode ocorrer em ambientes onde a colaboração e a diplomacia são mais valorizadas.',
+      equilibrado: 'Seu nível de assertividade adaptado está alinhado com sua natureza. Você está atuando de forma autêntica.'
+    },
+    I: {
+      crescente: 'Você está se esforçando para ser mais comunicativo do que naturalmente se sente. Isso pode indicar que seu ambiente valoriza networking e apresentações.',
+      decrescente: 'Você está contendo sua extroversão natural. Isso pode ocorrer em ambientes mais formais ou técnicos.',
+      equilibrado: 'Seu nível de sociabilidade adaptado está alinhado com sua natureza. Você pode se expressar autenticamente.'
+    },
+    S: {
+      crescente: 'Você está desenvolvendo mais paciência e estabilidade do que sua natureza sugere. Isso pode indicar um ambiente que requer mais consistência.',
+      decrescente: 'Você está sendo mais flexível do que sua preferência natural. Isso pode ocorrer em ambientes de mudanças frequentes.',
+      equilibrado: 'Seu ritmo de trabalho adaptado está alinhado com suas preferências naturais.'
+    },
+    C: {
+      crescente: 'Você está aumentando seu foco em detalhes além de sua inclinação natural. Isso pode indicar que seu papel exige maior rigor técnico.',
+      decrescente: 'Você está sendo mais flexível com processos do que sua natureza prefere. Isso pode ocorrer em ambientes mais dinâmicos.',
+      equilibrado: 'Seu nível de atenção a detalhes está alinhado com sua natureza.'
+    }
+  };
+  
+  return descriptions[factor][direction as 'crescente' | 'decrescente' | 'equilibrado'];
+}
+
+function getFactorAnalysisText(factor: 'D' | 'I' | 'S' | 'C', natural: number, adapted: number): string {
+  const diff = adapted - natural;
+  const absDiff = Math.abs(diff);
+  
+  if (absDiff < 5) {
+    return 'Há alinhamento entre seu perfil natural e adaptado neste fator. Você pode atuar de forma autêntica sem necessidade de ajustes significativos, o que contribui para seu bem-estar e eficácia profissional.';
+  }
+  
+  if (diff > 0) {
+    return `Você está se esforçando para aumentar este fator em ${absDiff} pontos acima de sua natureza. Esta adaptação pode ser benéfica no curto prazo, mas requer energia adicional. Avalie se o ambiente está aproveitando suas forças naturais ou se está exigindo mudanças excessivas que podem gerar tensão a longo prazo.`;
+  }
+  
+  return `Você está reduzindo este fator em ${absDiff} pontos abaixo de sua natureza. Esta moderação pode ajudá-lo a se ajustar ao ambiente atual, mas certifique-se de que não está suprimindo características valiosas que poderiam ser melhor aproveitadas em outro contexto.`;
 }
