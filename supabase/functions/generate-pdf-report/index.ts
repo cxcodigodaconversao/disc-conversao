@@ -149,6 +149,34 @@ serve(async (req) => {
 });
 
 async function generatePDFDocument(assessment: any, result: any, chartImages: Record<string, string>): Promise<Uint8Array> {
+  // Paleta de cores do site convertida para RGB (jsPDF usa RGB)
+  const SITE_COLORS = {
+    // Cores principais do site
+    primary: [210, 188, 143] as [number, number, number],        // Gold #d2bc8f
+    background: [12, 18, 28] as [number, number, number],        // Deep navy #0c121c
+    card: [26, 35, 50] as [number, number, number],              // Dark blue #1a2332
+    foreground: [255, 255, 255] as [number, number, number],     // White
+    
+    // Cores de status do site
+    success: [92, 184, 92] as [number, number, number],          // Green #5cb85c
+    warning: [240, 173, 78] as [number, number, number],         // Orange #f0ad4e
+    danger: [217, 83, 79] as [number, number, number],           // Red #d9534f
+    info: [91, 192, 222] as [number, number, number],            // Blue #5bc0de
+    
+    // Cores DISC (usando cores de status do site)
+    discD: [217, 83, 79] as [number, number, number],            // Red (danger)
+    discI: [240, 173, 78] as [number, number, number],           // Orange (warning)
+    discS: [92, 184, 92] as [number, number, number],            // Green (success)
+    discC: [91, 192, 222] as [number, number, number],           // Blue (info)
+    
+    // Cores de texto
+    textPrimary: [255, 255, 255] as [number, number, number],    // White
+    textSecondary: [160, 174, 192] as [number, number, number],  // Gray (muted-foreground)
+    textMuted: [107, 114, 128] as [number, number, number],      // Gray claro
+    textDark: [17, 24, 39] as [number, number, number],          // Dark gray
+    textMedium: [55, 65, 81] as [number, number, number]         // Medium gray
+  };
+
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   const pageHeight = 297;
@@ -170,14 +198,14 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   const addHeader = () => {
     if (currentPage > 1) {
       doc.setFontSize(9);
-      doc.setTextColor(107, 114, 128);
+      doc.setTextColor(...SITE_COLORS.textMuted);
       doc.text('CIS Assessment - Relatório Confidencial', pageWidth - margin, 12, { align: 'right' });
     }
   };
 
   const addFooter = () => {
     doc.setFontSize(8);
-    doc.setTextColor(107, 114, 128);
+    doc.setTextColor(...SITE_COLORS.textMuted);
     doc.text(`© 2025 CIS Assessment - Página ${currentPage}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
   };
 
@@ -256,11 +284,11 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
       // Text
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.setTextColor(55, 65, 81);
+      doc.setTextColor(...SITE_COLORS.textMedium);
       doc.text(row.label, margin + (row.color ? 6 : 3), yPos + 6.5);
       
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(17, 24, 39);
+      doc.setTextColor(...SITE_COLORS.textDark);
       doc.text(row.value, margin + col1Width + 5, yPos + 6.5);
       
       yPos += rowHeight;
@@ -310,22 +338,22 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     yPos = startY + estimatedHeight + 8;
   };
 
-  const addSectionTitle = (title: string, color = [30, 64, 175]) => {
+  const addSectionTitle = (title: string, color: [number, number, number] = SITE_COLORS.primary) => {
     checkPageBreak(20);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
     doc.setTextColor(color[0], color[1], color[2]);
     doc.text(title, margin, yPos);
     
-    // Decorative line
-    doc.setDrawColor(59, 130, 246);
+    // Decorative line using primary gold color
+    doc.setDrawColor(...SITE_COLORS.primary);
     doc.setLineWidth(0.8);
     doc.line(margin, yPos + 3, margin + 70, yPos + 3);
     
     yPos += 15;
   };
 
-  const addSubtitle = (subtitle: string, color = [71, 85, 105]) => {
+  const addSubtitle = (subtitle: string, color: [number, number, number] = SITE_COLORS.textMedium) => {
     checkPageBreak(12);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
@@ -341,7 +369,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   // ========== PÁGINA 1: CAPA ==========
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(28);
-  doc.setTextColor(30, 64, 175);
+  doc.setTextColor(...SITE_COLORS.primary);
   doc.text('MAPEAMENTO DE PERFIL', pageWidth / 2, 80, { align: 'center' });
   doc.text('COMPORTAMENTAL', pageWidth / 2, 100, { align: 'center' });
 
@@ -351,7 +379,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   doc.text(assessment.candidate_name || 'N/A', pageWidth / 2, 140, { align: 'center' });
 
   doc.setFontSize(14);
-  doc.setTextColor(107, 114, 128);
+  doc.setTextColor(...SITE_COLORS.textMuted);
   doc.text(`Campanha: ${assessment.campaigns?.name || 'N/A'}`, pageWidth / 2, 160, { align: 'center' });
   doc.text(`Realizado em: ${new Date(assessment.created_at).toLocaleDateString('pt-BR')}`, pageWidth / 2, 175, { align: 'center' });
 
@@ -359,7 +387,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   addPage();
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
-  doc.setTextColor(30, 64, 175);
+  doc.setTextColor(...SITE_COLORS.primary);
   doc.text('Conteúdo', margin, yPos);
   yPos += 15;
 
@@ -390,7 +418,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   addPage();
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
-  doc.setTextColor(30, 64, 175);
+  doc.setTextColor(...SITE_COLORS.primary);
   doc.text('RELATÓRIO COMPORTAMENTAL', margin, yPos);
   yPos += 12;
 
@@ -434,7 +462,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   addPage();
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
-  doc.setTextColor(30, 64, 175);
+  doc.setTextColor(...SITE_COLORS.primary);
   doc.text('METODOLOGIA DISC', margin, yPos);
   yPos += 12;
 
@@ -461,7 +489,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     checkPageBreak(20);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
-    doc.setTextColor(59, 130, 246);
+    doc.setTextColor(...SITE_COLORS.primary);
     doc.text(dim.letter, margin, yPos);
     yPos += 6;
     
@@ -534,7 +562,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   const colWidth = (contentWidth - 20) / 5;
   const rowHeight = 7;
   
-  doc.setFillColor(59, 130, 246);
+  doc.setFillColor(...SITE_COLORS.primary);
   doc.rect(margin, yPos, contentWidth, rowHeight, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
@@ -570,10 +598,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     // D
     doc.setFont('helvetica', 'normal');
     if (isNearD) {
-      doc.setFillColor(239, 68, 68, 0.3);
+      doc.setFillColor(SITE_COLORS.discD[0], SITE_COLORS.discD[1], SITE_COLORS.discD[2], 0.3);
       doc.rect(margin + colWidth, yPos, colWidth, rowHeight, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(239, 68, 68);
+      doc.setTextColor(...SITE_COLORS.discD);
     } else {
       doc.setTextColor(55, 65, 81);
     }
@@ -582,10 +610,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     // I
     doc.setFont('helvetica', 'normal');
     if (isNearI) {
-      doc.setFillColor(245, 158, 11, 0.3);
+      doc.setFillColor(SITE_COLORS.discI[0], SITE_COLORS.discI[1], SITE_COLORS.discI[2], 0.3);
       doc.rect(margin + colWidth * 2, yPos, colWidth, rowHeight, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(245, 158, 11);
+      doc.setTextColor(...SITE_COLORS.discI);
     } else {
       doc.setTextColor(55, 65, 81);
     }
@@ -594,10 +622,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     // S
     doc.setFont('helvetica', 'normal');
     if (isNearS) {
-      doc.setFillColor(16, 185, 129, 0.3);
+      doc.setFillColor(SITE_COLORS.discS[0], SITE_COLORS.discS[1], SITE_COLORS.discS[2], 0.3);
       doc.rect(margin + colWidth * 3, yPos, colWidth, rowHeight, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(16, 185, 129);
+      doc.setTextColor(...SITE_COLORS.discS);
     } else {
       doc.setTextColor(55, 65, 81);
     }
@@ -606,10 +634,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     // C
     doc.setFont('helvetica', 'normal');
     if (isNearC) {
-      doc.setFillColor(59, 130, 246, 0.3);
+      doc.setFillColor(SITE_COLORS.discC[0], SITE_COLORS.discC[1], SITE_COLORS.discC[2], 0.3);
       doc.rect(margin + colWidth * 4, yPos, colWidth, rowHeight, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(59, 130, 246);
+      doc.setTextColor(...SITE_COLORS.discC);
     } else {
       doc.setTextColor(55, 65, 81);
     }
@@ -625,10 +653,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
 
   // ========== 4 PÁGINAS DE ANÁLISE INDIVIDUAL DE FATORES ==========
   const factorsToAnalyze: Array<{ key: 'D' | 'I' | 'S' | 'C', title: string, color: [number, number, number] }> = [
-    { key: 'D', title: 'COMO LIDA COM PROBLEMAS E DESAFIOS', color: [239, 68, 68] },
-    { key: 'I', title: 'COMO LIDA COM AS PESSOAS', color: [245, 158, 11] },
-    { key: 'S', title: 'COMO RESPONDE AO RITMO E MUDANÇAS', color: [16, 185, 129] },
-    { key: 'C', title: 'COMO RESPONDE A REGRAS E PROCEDIMENTOS', color: [59, 130, 246] }
+    { key: 'D', title: 'COMO LIDA COM PROBLEMAS E DESAFIOS', color: SITE_COLORS.discD },
+    { key: 'I', title: 'COMO LIDA COM AS PESSOAS', color: SITE_COLORS.discI },
+    { key: 'S', title: 'COMO RESPONDE AO RITMO E MUDANÇAS', color: SITE_COLORS.discS },
+    { key: 'C', title: 'COMO RESPONDE A REGRAS E PROCEDIMENTOS', color: SITE_COLORS.discC }
   ];
 
   const factorValues = {
@@ -776,10 +804,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   // Scores Table (variáveis já declaradas acima)
 
   const naturalScoresData = [
-    { label: 'D (Dominância)', value: `${naturalD}/100`, color: [239, 68, 68] },
-    { label: 'I (Influência)', value: `${naturalI}/100`, color: [245, 158, 11] },
-    { label: 'S (Estabilidade)', value: `${naturalS}/100`, color: [16, 185, 129] },
-    { label: 'C (Conformidade)', value: `${naturalC}/100`, color: [59, 130, 246] }
+    { label: 'D (Dominância)', value: `${naturalD}/100`, color: SITE_COLORS.discD },
+    { label: 'I (Influência)', value: `${naturalI}/100`, color: SITE_COLORS.discI },
+    { label: 'S (Estabilidade)', value: `${naturalS}/100`, color: SITE_COLORS.discS },
+    { label: 'C (Conformidade)', value: `${naturalC}/100`, color: SITE_COLORS.discC }
   ];
 
   createTable(naturalScoresData, yPos);
@@ -787,7 +815,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   if (result.primary_profile) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.setTextColor(59, 130, 246);
+    doc.setTextColor(...SITE_COLORS.primary);
     doc.text(`Perfil Primário: ${result.primary_profile}`, margin, yPos);
     yPos += 10;
 
@@ -834,10 +862,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   // Adapted scores Table (variáveis já declaradas acima)
 
   const adaptedScoresData = [
-    { label: 'D (Dominância)', value: `${adaptedD}/100`, color: [239, 68, 68] },
-    { label: 'I (Influência)', value: `${adaptedI}/100`, color: [245, 158, 11] },
-    { label: 'S (Estabilidade)', value: `${adaptedS}/100`, color: [16, 185, 129] },
-    { label: 'C (Conformidade)', value: `${adaptedC}/100`, color: [59, 130, 246] }
+    { label: 'D (Dominância)', value: `${adaptedD}/100`, color: SITE_COLORS.discD },
+    { label: 'I (Influência)', value: `${adaptedI}/100`, color: SITE_COLORS.discI },
+    { label: 'S (Estabilidade)', value: `${adaptedS}/100`, color: SITE_COLORS.discS },
+    { label: 'C (Conformidade)', value: `${adaptedC}/100`, color: SITE_COLORS.discC }
   ];
 
   createTable(adaptedScoresData, yPos);
@@ -851,10 +879,10 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
       'high': 'Alto'
     };
     const tensionText = tensionMap[result.tension_level] || 'Não calculado';
-    const tensionColors: Record<string, number[]> = {
-      'low': [16, 185, 129],
-      'medium': [245, 158, 11],
-      'high': [239, 68, 68]
+    const tensionColors: Record<string, [number, number, number]> = {
+      'low': SITE_COLORS.success,
+      'medium': SITE_COLORS.warning,
+      'high': SITE_COLORS.danger
     };
     const tensionColor = tensionColors[result.tension_level] || [107, 114, 128];
     
@@ -911,7 +939,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
 
   // ========== PÁGINA 8: PONTOS A DESENVOLVER ==========
   addPage();
-  addSectionTitle('PONTOS A DESENVOLVER', [245, 158, 11]);
+  addSectionTitle('PONTOS A DESENVOLVER', SITE_COLORS.warning);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
@@ -936,14 +964,14 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     addPage();
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
-    doc.setTextColor(30, 64, 175);
+    doc.setTextColor(...SITE_COLORS.primary);
     doc.text('TIPOS PSICOLÓGICOS', margin, yPos);
     yPos += 12;
 
     const jungType = result.jung_type.type || 'N/A';
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.setTextColor(59, 130, 246);
+    doc.setTextColor(...SITE_COLORS.primary);
     doc.text(`Tipo: ${jungType}`, margin, yPos);
     yPos += 12;
 
@@ -1012,7 +1040,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   // ========== PÁGINA 11: ESTILO DE LIDERANÇA ==========
   if (result.leadership_style) {
     addPage();
-    addSectionTitle('ESTILO DE LIDERANÇA', [16, 185, 129]);
+    addSectionTitle('ESTILO DE LIDERANÇA', SITE_COLORS.success);
 
     const leadershipNames: Record<string, string> = {
       executive: 'Executivo - Focado em resultados',
@@ -1052,12 +1080,12 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   const commTips = getProfileCommunicationTips(result.primary_profile);
   if (commTips) {
     if (commTips.do && commTips.do.length > 0) {
-      createColorBox('✓ O que fazer', commTips.do, [16, 185, 129]);
+      createColorBox('✓ O que fazer', commTips.do, SITE_COLORS.success);
       yPos += 5;
     }
 
     if (commTips.dont && commTips.dont.length > 0) {
-      createColorBox('✗ O que evitar', commTips.dont, [239, 68, 68]);
+      createColorBox('✗ O que evitar', commTips.dont, SITE_COLORS.danger);
     }
   }
 
@@ -1074,7 +1102,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     if (chartImages.disc) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.setTextColor(239, 68, 68);
+      doc.setTextColor(...SITE_COLORS.danger);
       doc.text('Perfil DISC', margin, currentChartY);
       currentChartY += 6;
       
@@ -1099,7 +1127,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     if (chartImages.leadership) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.setTextColor(16, 185, 129);
+      doc.setTextColor(...SITE_COLORS.success);
       doc.text('Estilo de Liderança', margin, currentChartY);
       currentChartY += 6;
       
@@ -1122,7 +1150,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
 
   // ========== PÁGINA 15: PLANO DE AÇÃO ==========
   addPage();
-  addSectionTitle('PLANO DE AÇÃO PERSONALIZADO', [16, 185, 129]);
+  addSectionTitle('PLANO DE AÇÃO PERSONALIZADO', SITE_COLORS.success);
 
   const actionPlan = getActionPlan(result.primary_profile, result.tension_level);
   
@@ -1141,7 +1169,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
     checkPageBreak(25);
     
     // Number circle
-    doc.setFillColor(59, 130, 246);
+    doc.setFillColor(...SITE_COLORS.primary);
     doc.circle(margin + 4, yPos - 2, 4, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);

@@ -24,77 +24,86 @@ serve(async (req) => {
     
     if (chartType === 'disc-bars') {
       const { natural, adapted } = data;
-      prompt = `Create a professional horizontal bar chart showing DISC profile comparison. 
-Style: Modern, clean, corporate design with white background.
+      prompt = `Crie um gráfico de barras horizontais profissional mostrando comparação de perfil DISC. 
+Estilo: Design moderno, limpo, corporativo com fundo branco.
 
-Data to display:
-NATURAL PROFILE (left side):
-- D (Dominance): ${natural.D}/40 - Red color (#EF4444)
-- I (Influence): ${natural.I}/40 - Orange color (#F59E0B)
-- S (Steadiness): ${natural.S}/40 - Green color (#10B981)
-- C (Compliance): ${natural.C}/40 - Blue color (#3B82F6)
+Dados para exibir:
+PERFIL NATURAL (lado esquerdo):
+- D (Dominância): ${natural.D}/40 - Cor vermelha (#d9534f)
+- I (Influência): ${natural.I}/40 - Cor laranja (#f0ad4e)
+- S (Estabilidade): ${natural.S}/40 - Cor verde (#5cb85c)
+- C (Conformidade): ${natural.C}/40 - Cor azul (#5bc0de)
 
-ADAPTED PROFILE (right side):
-- D (Dominance): ${adapted.D}/40 - Red color (#EF4444)
-- I (Influence): ${adapted.I}/40 - Orange color (#F59E0B)
-- S (Steadiness): ${adapted.S}/40 - Green color (#10B981)
-- C (Compliance): ${adapted.C}/40 - Blue color (#3B82F6)
+PERFIL ADAPTADO (lado direito):
+- D (Dominância): ${adapted.D}/40 - Cor vermelha (#d9534f)
+- I (Influência): ${adapted.I}/40 - Cor laranja (#f0ad4e)
+- S (Estabilidade): ${adapted.S}/40 - Cor verde (#5cb85c)
+- C (Conformidade): ${adapted.C}/40 - Cor azul (#5bc0de)
 
-Layout: Two side-by-side vertical bar charts. Left: "Natural Profile", Right: "Adapted Profile".
-Each chart shows 4 bars (D, I, S, C) with values displayed on top of each bar.
-Scale: 0-40 on Y-axis. Professional grid lines. Clean sans-serif font. Title at top: "${title}".
-Size: 1200x600px landscape. High quality, suitable for PDF inclusion.`;
+Layout: Dois gráficos de barras verticais lado a lado. Esquerda: "Perfil Natural", Direita: "Perfil Adaptado".
+Cada gráfico mostra 4 barras (D, I, S, C) com valores exibidos no topo de cada barra.
+Escala: 0-40 no eixo Y. Linhas de grade profissionais. Fonte sans-serif limpa. Título no topo: "${title}".
+Tamanho: 1200x600px paisagem. Alta qualidade, adequado para inclusão em PDF.`;
     
     } else if (chartType === 'values-radar') {
-      prompt = `Create a professional radar/spider chart showing Values Profile.
-Style: Modern, clean design with white background and subtle grid.
+      const valueNames: Record<string, string> = {
+        theoretical: 'Teórico',
+        economic: 'Econômico',
+        aesthetic: 'Estético',
+        social: 'Social',
+        political: 'Político',
+        spiritual: 'Espiritual'
+      };
+      
+      prompt = `Crie um gráfico radar/spider profissional mostrando Perfil de Valores.
+Estilo: Design moderno, limpo com fundo branco e grade sutil.
 
-Data to display (scale 0-60):
+Dados para exibir (escala 0-60):
 ${Object.entries(data).map(([key, value]) => 
-  `- ${key}: ${value}/60`
+  `- ${valueNames[key] || key}: ${value}/60`
 ).join('\n')}
 
-Layout: Hexagonal radar chart with 6 axes (one for each value).
-Colors: Fill area with semi-transparent blue (#3B82F680), border in solid blue (#3B82F6).
-Each axis labeled with value name and score. Grid lines at 10, 20, 30, 40, 50, 60.
-Title at top: "${title}". Size: 800x800px square. High quality, suitable for PDF.`;
+Layout: Gráfico radar hexagonal com 6 eixos (um para cada valor).
+Cores: Preencher área com azul semi-transparente (#5bc0de80), borda em azul sólido (#5bc0de).
+Cada eixo rotulado com nome do valor e pontuação. Linhas de grade em 10, 20, 30, 40, 50, 60.
+Título no topo: "${title}". Tamanho: 800x800px quadrado. Alta qualidade, adequado para PDF.`;
     
     } else if (chartType === 'leadership-pie') {
-      prompt = `Create a professional pie/donut chart showing Leadership Styles distribution.
-Style: Modern, clean design with white background.
+      prompt = `Crie um gráfico de pizza/donut profissional mostrando distribuição de Estilos de Liderança.
+Estilo: Design moderno, limpo com fundo branco.
 
-Data to display:
+Dados para exibir:
 ${Object.entries(data).map(([key, value]) => {
-  const name = key === 'executive' ? 'Executive' :
-    key === 'motivator' ? 'Motivator' :
-    key === 'systematic' ? 'Systematic' : 'Methodical';
-  const color = key === 'executive' ? '#EF4444' :
-    key === 'motivator' ? '#F59E0B' :
-    key === 'systematic' ? '#10B981' : '#3B82F6';
+  const name = key === 'executive' ? 'Executivo' :
+    key === 'motivator' ? 'Motivador' :
+    key === 'systematic' ? 'Sistemático' : 'Metódico';
+  const color = key === 'executive' ? '#d9534f' :
+    key === 'motivator' ? '#f0ad4e' :
+    key === 'systematic' ? '#5cb85c' : '#5bc0de';
   const percentage = Math.round((value as number / 40) * 100);
-  return `- ${name}: ${percentage}% - Color: ${color}`;
+  return `- ${name}: ${percentage}% - Cor: ${color}`;
 }).join('\n')}
 
-Layout: Donut chart with clear segments. Each segment labeled with name and percentage.
-Legend on the right side with color boxes. Title at top: "${title}".
-Size: 800x600px landscape. High quality, professional appearance, suitable for PDF.`;
+Layout: Gráfico donut com segmentos claros. Cada segmento rotulado com nome e porcentagem.
+Legenda no lado direito com caixas de cores. Título no topo: "${title}".
+Tamanho: 800x600px paisagem. Alta qualidade, aparência profissional, adequado para PDF.`;
     
     } else if (chartType === 'competencies-bars') {
       const entries = Object.entries(data).slice(0, 8);
-      prompt = `Create a professional horizontal bar chart showing Competencies levels.
-Style: Modern, clean design with white background.
+      prompt = `Crie um gráfico de barras horizontais profissional mostrando níveis de Competências.
+Estilo: Design moderno, limpo com fundo branco.
 
-Data to display (scale 0-40):
+Dados para exibir (escala 0-40):
 ${entries.map(([key, value]) => {
   const cleanName = key.replace(/_n$/, '').replace(/_/g, ' ').toUpperCase();
-  const level = (value as number) > 30 ? 'High' : (value as number) > 15 ? 'Medium' : 'Low';
-  const color = (value as number) > 30 ? '#10B981' : (value as number) > 15 ? '#F59E0B' : '#EF4444';
-  return `- ${cleanName}: ${value}/40 (${level}) - Color: ${color}`;
+  const level = (value as number) > 30 ? 'Alto' : (value as number) > 15 ? 'Médio' : 'Baixo';
+  const color = (value as number) > 30 ? '#5cb85c' : (value as number) > 15 ? '#f0ad4e' : '#d9534f';
+  return `- ${cleanName}: ${value}/40 (${level}) - Cor: ${color}`;
 }).join('\n')}
 
-Layout: Horizontal bars, sorted by value. Each bar shows competency name on left, value on right.
-Colors indicate level: Green (High), Yellow (Medium), Red (Low). Title at top: "${title}".
-Size: 900x700px. Professional grid, clean fonts. High quality for PDF inclusion.`;
+Layout: Barras horizontais, ordenadas por valor. Cada barra mostra nome da competência à esquerda, valor à direita.
+Cores indicam nível: Verde (Alto), Amarelo (Médio), Vermelho (Baixo). Título no topo: "${title}".
+Tamanho: 900x700px. Grade profissional, fontes limpas. Alta qualidade para inclusão em PDF.`;
     }
 
     console.log('Prompt:', prompt.substring(0, 200) + '...');
