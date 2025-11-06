@@ -303,6 +303,242 @@ export const DISC_PROFILES = {
   }
 };
 
+// Perfis combinados detalhados
+export const COMBINED_PROFILES: Record<string, {
+  name: string;
+  description: string;
+  fullDescription: string;
+  howDealsWithProblems: string[];
+  developmentPoints: string[];
+  communicationTips: { do: string[]; dont: string[] };
+  strengths: string[];
+  idealEnvironment: string;
+  motivators: string[];
+}> = {
+  'Executor': {
+    name: 'Executor',
+    description: 'Orientado para resultados, decisivo e focado em conquistas',
+    fullDescription: 'O perfil Executor combina alta dominância com foco em realização. São profissionais que transformam visão em ação, superando obstáculos com determinação. Demonstram forte capacidade de liderança, tomada de decisão rápida e foco intenso em resultados tangíveis. No ambiente corporativo, destacam-se por assumir responsabilidades desafiadoras e entregar resultados consistentemente.',
+    howDealsWithProblems: [
+      'Age rapidamente diante de desafios, buscando soluções práticas',
+      'Assume controle das situações problemáticas com confiança',
+      'Foca em resolver ao invés de analisar excessivamente',
+      'Pode subestimar complexidade em favor de velocidade',
+      'Prefere ação direta a longas discussões sobre o problema'
+    ],
+    developmentPoints: [
+      'Desenvolver paciência com processos e pessoas mais lentas',
+      'Melhorar escuta ativa antes de tomar decisões',
+      'Considerar impacto emocional das decisões na equipe',
+      'Dar mais atenção a detalhes importantes',
+      'Equilibrar velocidade com qualidade',
+      'Praticar empatia e considerar perspectivas diferentes',
+      'Aprender a delegar efetivamente',
+      'Reduzir tendência a microgerenciar resultados'
+    ],
+    communicationTips: {
+      do: [
+        'Seja direto e objetivo na comunicação',
+        'Apresente soluções e opções claras',
+        'Foque em resultados e benefícios tangíveis',
+        'Respeite o tempo e vá direto ao ponto',
+        'Use dados concretos para suportar argumentos',
+        'Reconheça conquistas e resultados alcançados'
+      ],
+      dont: [
+        'Evite rodeios ou excesso de detalhes',
+        'Não tome decisões por ele sem consultar',
+        'Evite conversas muito longas sem propósito',
+        'Não seja excessivamente emocional',
+        'Evite questionar sua competência publicamente',
+        'Não imponha processos sem justificativa clara'
+      ]
+    },
+    strengths: [
+      'Forte foco em resultados e conquistas',
+      'Capacidade de tomar decisões rápidas',
+      'Liderança natural e iniciativa',
+      'Alta produtividade e eficiência',
+      'Coragem para assumir riscos calculados'
+    ],
+    idealEnvironment: 'Ambientes dinâmicos com metas desafiadoras, autonomia para tomar decisões e oportunidades claras de crescimento baseadas em mérito e resultados',
+    motivators: [
+      'Reconhecimento por conquistas e resultados',
+      'Autonomia e poder de decisão',
+      'Desafios e metas ambiciosas',
+      'Oportunidades de liderança',
+      'Competição saudável e mérito'
+    ]
+  },
+  'Comunicador': {
+    name: 'Comunicador',
+    description: 'Entusiasta, persuasivo e focado em relacionamentos',
+    fullDescription: 'O perfil Comunicador combina alta influência com energia social. São profissionais que inspiram e motivam através de sua comunicação carismática e entusiasmo contagiante. Destacam-se em construir relacionamentos, trabalhar em equipe e criar ambientes positivos. No ambiente corporativo, são catalisadores de colaboração e inovação através de networking efetivo.',
+    howDealsWithProblems: [
+      'Busca soluções colaborativas envolvendo a equipe',
+      'Mantém otimismo mesmo em situações desafiadoras',
+      'Usa criatividade para encontrar alternativas inovadoras',
+      'Pode subestimar gravidade por excesso de otimismo',
+      'Prefere resolver através de diálogo e persuasão'
+    ],
+    developmentPoints: [
+      'Melhorar organização e gestão de tempo',
+      'Focar mais em detalhes e precisão',
+      'Cumprir prazos de forma mais consistente',
+      'Ser mais objetivo em decisões de negócio',
+      'Desenvolver capacidade de trabalho independente',
+      'Ouvir mais ativamente e falar menos',
+      'Dar mais atenção a tarefas administrativas',
+      'Manter foco em projetos de longo prazo'
+    ],
+    communicationTips: {
+      do: [
+        'Seja amigável e entusiasta',
+        'Demonstre interesse genuíno na pessoa',
+        'Permita interação e troca de ideias',
+        'Reconheça contribuições publicamente',
+        'Use histórias e exemplos práticos',
+        'Mantenha tom positivo e energético'
+      ],
+      dont: [
+        'Evite ser excessivamente formal ou frio',
+        'Não seja muito crítico ou negativo',
+        'Evite ignorar suas ideias ou contribuições',
+        'Não force trabalho isolado por longos períodos',
+        'Evite reuniões longas sem interação',
+        'Não seja impessoal na comunicação'
+      ]
+    },
+    strengths: [
+      'Excelente comunicação e persuasão',
+      'Capacidade de motivar e inspirar equipes',
+      'Forte networking e construção de relacionamentos',
+      'Criatividade e pensamento inovador',
+      'Energia positiva e entusiasmo contagiante'
+    ],
+    idealEnvironment: 'Ambientes colaborativos com forte interação social, reconhecimento público, liberdade criativa e oportunidades de trabalho em equipe',
+    motivators: [
+      'Reconhecimento e apreciação pública',
+      'Trabalho em equipe e colaboração',
+      'Variedade e novos desafios',
+      'Liberdade de expressão criativa',
+      'Ambiente social e dinâmico'
+    ]
+  },
+  'Planejador': {
+    name: 'Planejador',
+    description: 'Paciente, leal e focado em estabilidade',
+    fullDescription: 'O perfil Planejador combina alta estabilidade com forte senso de lealdade e compromisso. São profissionais que trazem consistência, confiabilidade e harmonia para equipes. Destacam-se em manter processos funcionando suavemente, apoiar colegas e criar ambientes de trabalho estáveis. No ambiente corporativo, são a fundação confiável que garante continuidade e qualidade consistente.',
+    howDealsWithProblems: [
+      'Analisa calmamente antes de agir',
+      'Busca soluções que mantenham harmonia do grupo',
+      'Consulta outros antes de fazer mudanças',
+      'Considera impacto de longo prazo das decisões',
+      'Prefere abordagens testadas a experimentações arriscadas',
+      'Pode demorar em decisões que exigem mudança rápida'
+    ],
+    developmentPoints: [
+      'Ser mais assertivo ao expressar opiniões',
+      'Adaptar-se mais rapidamente a mudanças',
+      'Tomar decisões com mais velocidade quando necessário',
+      'Lidar melhor com conflitos ao invés de evitá-los',
+      'Sair da zona de conforto com mais frequência',
+      'Aprender a dizer "não" quando apropriado',
+      'Desenvolver senso de urgência em situações críticas',
+      'Aceitar que mudanças podem ser positivas'
+    ],
+    communicationTips: {
+      do: [
+        'Seja paciente e cordial',
+        'Mantenha tom amigável e respeitoso',
+        'Dê tempo para processar informações',
+        'Mostre apoio e crie ambiente seguro',
+        'Explique mudanças com antecedência',
+        'Reconheça lealdade e trabalho consistente'
+      ],
+      dont: [
+        'Evite pressão por decisões imediatas',
+        'Não imponha mudanças abruptas',
+        'Evite criar conflitos desnecessários',
+        'Não ignore suas preocupações',
+        'Evite ambiente de alta pressão constante',
+        'Não desvalorize a importância da estabilidade'
+      ]
+    },
+    strengths: [
+      'Paciência e consistência excepcionais',
+      'Alta lealdade e confiabilidade',
+      'Excelente trabalho em equipe',
+      'Escuta ativa e empatia',
+      'Calma sob pressão e situações estressantes'
+    ],
+    idealEnvironment: 'Ambientes estáveis com processos claros, trabalho em equipe colaborativo, baixo nível de conflito e mudanças graduais e bem comunicadas',
+    motivators: [
+      'Estabilidade e segurança',
+      'Reconhecimento por lealdade',
+      'Trabalho em equipe harmônico',
+      'Processos claros e previsíveis',
+      'Ambiente de baixo conflito'
+    ]
+  },
+  'Analista': {
+    name: 'Analista',
+    description: 'Preciso, metódico e focado em qualidade',
+    fullDescription: 'O perfil Analista combina alta conformidade com foco intenso em qualidade e precisão. São profissionais que garantem excelência através de análise cuidadosa e atenção meticulosa aos detalhes. Destacam-se em seguir procedimentos, evitar erros e manter altos padrões. No ambiente corporativo, são guardiões da qualidade que asseguram que processos sejam executados corretamente.',
+    howDealsWithProblems: [
+      'Analisa sistematicamente todas as variáveis',
+      'Busca a solução mais correta e precisa',
+      'Segue procedimentos estabelecidos e testados',
+      'Considera todas as consequências possíveis',
+      'Pode demorar buscando informação perfeita',
+      'Prefere dados concretos a intuição'
+    ],
+    developmentPoints: [
+      'Ser menos perfeccionista, aceitar "bom o suficiente"',
+      'Tomar decisões mais rápidas com informação suficiente',
+      'Aceitar que erros fazem parte do aprendizado',
+      'Ser mais flexível com mudanças imprevistas',
+      'Melhorar habilidades sociais e expressão emocional',
+      'Confiar mais na intuição além de dados',
+      'Desenvolver tolerância à ambiguidade',
+      'Balancear qualidade com velocidade quando necessário'
+    ],
+    communicationTips: {
+      do: [
+        'Seja lógico e preciso',
+        'Apresente dados e evidências concretas',
+        'Dê tempo adequado para análise',
+        'Respeite necessidade de qualidade',
+        'Seja organizado na apresentação',
+        'Forneça documentação detalhada'
+      ],
+      dont: [
+        'Evite pressão por decisões rápidas',
+        'Não apresente informações incompletas',
+        'Evite ser excessivamente emocional',
+        'Não critique trabalho sem fundamento',
+        'Evite mudanças sem justificativa clara',
+        'Não desrespeite a importância da precisão'
+      ]
+    },
+    strengths: [
+      'Atenção excepcional aos detalhes',
+      'Análise criteriosa e profunda',
+      'Alta qualidade no trabalho entregue',
+      'Precisão e exatidão consistentes',
+      'Organização e metodologia eficaz'
+    ],
+    idealEnvironment: 'Ambientes organizados com padrões de qualidade bem definidos, tempo adequado para análise, processos claros e expectativas precisas',
+    motivators: [
+      'Qualidade e excelência no trabalho',
+      'Precisão e exatidão',
+      'Processos bem estruturados',
+      'Reconhecimento pela qualidade',
+      'Tempo adequado para fazer certo'
+    ]
+  }
+};
+
 export const METHODOLOGY_TEXT = `
 O CIS Assessment® utiliza a metodologia DISC, desenvolvida pelo psicólogo William Moulton Marston em 1928. 
 Marston identificou quatro dimensões principais do comportamento humano:
