@@ -18,6 +18,39 @@ export interface ValueGroup {
   phrases: ValuePhrase[];
 }
 
+export interface DISCDescriptor {
+  level: number;
+  D: string;
+  I: string;
+  S: string;
+  C: string;
+}
+
+export interface FactorAnalysis {
+  naturalTrait: string;
+  naturalDescription: string;
+  adaptedDirection: 'crescente' | 'decrescente' | 'equilibrado';
+  adaptedAnalysis: string;
+  perceptionAnalysis?: string;
+  demandAnalysis?: string;
+}
+
+export interface DISCProfileFullContent {
+  name: string;
+  description: string;
+  fullDescription: string;
+  potentials: string;
+  interpersonalRelations: string;
+  decisionMaking: string;
+  primaryMotivator: { title: string; description: string };
+  secondaryMotivator: { title: string; description: string };
+  fears: string[];
+  organizationalFit: string;
+  problemSolving: string[];
+  developmentAreas: string[];
+  communicationTips: { doList: string[]; dontList: string[] };
+}
+
 export const DISC_GROUPS: DISCGroup[] = [
   {
     group: 1,

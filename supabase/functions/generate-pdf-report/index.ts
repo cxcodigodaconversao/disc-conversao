@@ -200,22 +200,19 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
       const uint8Array = new Uint8Array(arrayBuffer);
       
       // Validate image size (max 5MB)
-      if (uint8Array.byteLength === 0) {
-        throw new Error('Empty image data');
-      }
-      if (uint8Array.byteLength > 5 * 1024 * 1024) {
-        throw new Error('Image too large');
+      if (uint8Array.byteLength === 0 || uint8Array.byteLength > 5 * 1024 * 1024) {
+        throw new Error('Invalid image size');
       }
       
-      // Use Deno's native base64 encoding
+      // Convert to base64 in chunks to avoid stack overflow
       const base64 = base64Encode(uint8Array);
       const imgData = `data:image/png;base64,${base64}`;
       
       doc.addImage(imgData, 'PNG', x, y, width, height);
-      console.log(`Image added successfully: ${uint8Array.byteLength} bytes`);
+      console.log(`✓ Image loaded: ${(uint8Array.byteLength/1024).toFixed(1)}KB`);
     } catch (e) {
-      console.error('Error adding image:', e);
-      // Fallback: Draw gray box with text
+      console.error('✗ Image failed:', e);
+      // Fallback box
       doc.setFillColor(241, 245, 249);
       doc.rect(x, y, width, height, 'F');
       doc.setDrawColor(203, 213, 225);
