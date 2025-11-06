@@ -51,6 +51,488 @@ export interface DISCProfileFullContent {
   communicationTips: { doList: string[]; dontList: string[] };
 }
 
+// Tabela completa de descritores DISC por nível de intensidade (0-100)
+export const DISC_DESCRIPTORS: DISCDescriptor[] = [
+  { level: 99, D: "Arrogante", I: "Insinuante", S: "Hesitante", C: "Temeroso" },
+  { level: 96, D: "Ditador", I: "Encantador", S: "Indeciso", C: "Ansioso" },
+  { level: 94, D: "Egocêntrico", I: "Eloquente", S: "Amável", C: "Calculista" },
+  { level: 91, D: "Impetuoso", I: "Persuasivo", S: "Pacífico", C: "Questionador" },
+  { level: 88, D: "Dominador", I: "Inspirador", S: "Previsível", C: "Reservado" },
+  { level: 85, D: "Vigoroso", I: "Entusiasta", S: "Estável", C: "Preciso" },
+  { level: 83, D: "Audacioso", I: "Sociável", S: "Leal", C: "Sistemático" },
+  { level: 81, D: "Competitivo", I: "Comunicativo", S: "Cooperativo", C: "Organizado" },
+  { level: 78, D: "Firme", I: "Expressivo", S: "Paciente", C: "Meticuloso" },
+  { level: 76, D: "Decidido", I: "Espontâneo", S: "Calmo", C: "Detalhista" },
+  { level: 73, D: "Ativo", I: "Otimista", S: "Sereno", C: "Cuidadoso" },
+  { level: 70, D: "Direto", I: "Animado", S: "Gentil", C: "Criterioso" },
+  { level: 65, D: "Determinado", I: "Positivo", S: "Consistente", C: "Analítico" },
+  { level: 62, D: "Autoconfiante", I: "Caloroso", S: "Acessível", C: "Prudente" },
+  { level: 60, D: "Objetivo", I: "Amigável", S: "Receptivo", C: "Reflexivo" },
+  { level: 57, D: "Pragmático", I: "Agradável", S: "Harmonioso", C: "Ponderado" },
+  { level: 54, D: "Assertivo", I: "Cordial", S: "Moderado", C: "Equilibrado" },
+  { level: 50, D: "Equilibrado", I: "Equilibrado", S: "Equilibrado", C: "Equilibrado" },
+  { level: 46, D: "Cauteloso", I: "Discreto", S: "Adaptável", C: "Flexível" },
+  { level: 44, D: "Conservador", I: "Reservado", S: "Dinâmico", C: "Intuitivo" },
+  { level: 41, D: "Calculado", I: "Formal", S: "Ágil", C: "Rápido" },
+  { level: 39, D: "Ponderado", I: "Sério", S: "Ativo", C: "Espontâneo" },
+  { level: 35, D: "Hesitante", I: "Contido", S: "Inquieto", C: "Independente" },
+  { level: 30, D: "Pacífico", I: "Introspectivo", S: "Impaciente", C: "Autônomo" },
+  { level: 26, D: "Moderado", I: "Tímido", S: "Multitarefa", C: "Prático" },
+  { level: 21, D: "Passivo", I: "Retraído", S: "Versátil", C: "Abstrato" },
+  { level: 15, D: "Submisso", I: "Distante", S: "Inquieto", C: "Conceitual" },
+  { level: 10, D: "Conformado", I: "Isolado", S: "Impulsivo", C: "Visionário" },
+  { level: 5, D: "Acomodado", I: "Silencioso", S: "Instável", C: "Não-convencional" }
+];
+
+// Perfis completos DISC com todo o conteúdo detalhado
+export const FULL_PROFILES: Record<string, DISCProfileFullContent> = {
+  'IS': {
+    name: "Planejador-Comunicador",
+    description: "Pessoa sociável, estável e focada em harmonia. Combina comunicação calorosa com lealdade e consistência.",
+    fullDescription: `Você é uma pessoa naturalmente equilibrada entre a necessidade de interação social e a busca por estabilidade. Sua personalidade combina o calor humano e a capacidade de comunicação com a lealdade, paciência e consistência características de quem valoriza ambientes harmoniosos e previsíveis.
+
+Esse perfil é marcado pela habilidade de criar conexões genuínas com as pessoas, mantendo ao mesmo tempo um ritmo de trabalho constante e confiável. Você se destaca por sua capacidade de ouvir, apoiar e colaborar com os outros, sempre buscando manter um clima positivo e evitar conflitos desnecessários.
+
+Sua abordagem ao trabalho privilegia a cooperação e o trabalho em equipe. Você prefere ambientes onde as relações são valorizadas, onde há tempo para construir confiança mútua e onde mudanças são implementadas de forma gradual e bem comunicada. A estabilidade e a previsibilidade são importantes para você, pois permitem que você desenvolva suas tarefas com qualidade e atenção aos detalhes humanos.
+
+No entanto, esse perfil também pode enfrentar desafios em situações que exigem decisões rápidas, confrontos diretos ou mudanças abruptas. Você pode ter dificuldade em dizer "não", em estabelecer limites claros ou em lidar com ambientes de alta pressão e competitividade. O desenvolvimento da assertividade e da capacidade de adaptação a mudanças pode ser um foco importante de crescimento pessoal.`,
+    potentials: "Excelente capacidade de relacionamento interpessoal, criando vínculos de confiança duradouros. Habilidade natural para trabalhar em equipe, mediando conflitos e promovendo harmonia. Comunicação empática e calorosa, que inspira cooperação. Lealdade e consistência no cumprimento de compromissos. Paciência para desenvolver projetos de longo prazo com atenção às pessoas envolvidas.",
+    interpersonalRelations: "Nas relações interpessoais, você é caloroso, acessível e genuinamente interessado nas pessoas. Busca criar conexões profundas e duradouras, investindo tempo e energia em conhecer bem seus colegas e colaboradores. Prefere ambientes onde a comunicação é aberta, respeitosa e onde há espaço para expressar sentimentos e preocupações. Você é visto como alguém confiável, que está sempre disposto a ajudar e apoiar os outros.",
+    decisionMaking: "Sua tomada de decisão é cautelosa e ponderada, levando em consideração o impacto das escolhas nas pessoas envolvidas. Você prefere consultar outros, ouvir diferentes perspectivas e buscar consenso antes de agir. Evita decisões precipitadas ou que possam gerar conflitos. Em situações de pressão, pode ter dificuldade em decidir rapidamente, preferindo ter tempo para avaliar todas as implicações e manter a harmonia do grupo.",
+    primaryMotivator: {
+      title: "Relações Harmoniosas",
+      description: "Seu principal motivador é a qualidade das relações humanas no ambiente de trabalho. Você se sente energizado quando trabalha em equipes colaborativas, onde há respeito mútuo, comunicação aberta e onde as pessoas se apoiam genuinamente. Ambientes onde você pode construir amizades profissionais significativas e contribuir para o bem-estar coletivo são ideais para você. O reconhecimento vindo de pessoas que você respeita e admira tem grande valor. Você se realiza quando pode ajudar outros a crescerem e quando sente que faz parte de algo maior que si mesmo."
+    },
+    secondaryMotivator: {
+      title: "Estabilidade e Previsibilidade",
+      description: "Um motivador secundário importante é a segurança e a previsibilidade no ambiente profissional. Você valoriza processos claros, expectativas bem definidas e um ritmo de trabalho consistente. Mudanças constantes ou ambientes caóticos podem ser desmotivadores. Você se sente mais confortável quando há estrutura, quando sabe o que esperar e quando tem tempo adequado para se adaptar a novas situações. A possibilidade de desenvolver expertise e aprofundar conhecimentos em sua área também é motivadora."
+    },
+    fears: [
+      "Conflitos e confrontos diretos que possam prejudicar relacionamentos",
+      "Mudanças abruptas sem tempo adequado para adaptação",
+      "Ambientes competitivos e hostis onde a cooperação não é valorizada",
+      "Ser forçado a tomar decisões rápidas sem poder consultar outros",
+      "Isolamento social ou exclusão do grupo",
+      "Perda de estabilidade e segurança no trabalho",
+      "Decepcionar pessoas importantes ou quebrar sua confiança",
+      "Ter que lidar com situações de alta pressão e urgência constante",
+      "Ambientes onde as relações são superficiais e transacionais"
+    ],
+    organizationalFit: `Você se adapta melhor a organizações que valorizam o trabalho em equipe, a colaboração e o desenvolvimento de relações de longo prazo. Ambientes onde há uma cultura de respeito mútuo, comunicação aberta e onde as pessoas são vistas como o ativo mais importante da organização são ideais.
+
+Funções que envolvem atendimento ao cliente, suporte, recursos humanos, educação, trabalho social ou qualquer área onde o relacionamento interpessoal é central tendem a ser muito satisfatórias. Você também se destaca em papéis de suporte a equipes, coordenação de projetos colaborativos ou em posições onde pode atuar como elo entre diferentes grupos.
+
+Organizações com processos estáveis, onde mudanças são implementadas de forma planejada e comunicada, e onde há oportunidade de crescimento gradual e contínuo são as mais adequadas. Evite ambientes altamente competitivos, de ritmo muito acelerado ou onde a rotatividade de pessoas é alta, pois esses contextos podem ser estressantes e desmotivadores para seu perfil.`,
+    problemSolving: [
+      "Busca soluções consensuais envolvendo todas as partes interessadas",
+      "Prefere abordar problemas de forma colaborativa e não competitiva",
+      "Valoriza o tempo necessário para encontrar soluções sustentáveis",
+      "Considera o impacto humano das decisões tomadas",
+      "Procura manter a harmonia enquanto resolve questões técnicas"
+    ],
+    developmentAreas: [
+      "Desenvolver maior assertividade para expressar opiniões divergentes",
+      "Aprender a lidar com conflitos de forma mais direta quando necessário",
+      "Aumentar a tolerância a mudanças e ambientes dinâmicos",
+      "Praticar a tomada de decisões mais rápidas em situações de pressão",
+      "Estabelecer limites claros sem temer prejudicar relacionamentos",
+      "Desenvolver maior conforto com competição saudável"
+    ],
+    communicationTips: {
+      doList: [
+        "Seja caloroso e genuíno, demonstrando interesse pelas pessoas",
+        "Reserve tempo adequado para conversas sem pressão",
+        "Mostre apreciação por suas contribuições e lealdade",
+        "Forneça contexto sobre mudanças com antecedência",
+        "Crie ambiente seguro onde podem expressar preocupações",
+        "Valorize suas ideias colaborativas e visão de equipe"
+      ],
+      dontList: [
+        "Não seja abrupto ou excessivamente direto",
+        "Evite confrontos públicos ou críticas na frente de outros",
+        "Não imponha mudanças sem explicação ou preparação",
+        "Não crie ambientes de competição acirrada",
+        "Evite pressão excessiva por resultados imediatos",
+        "Não ignore a importância das relações pessoais"
+      ]
+    }
+  },
+  'D': {
+    name: "Executor",
+    description: "Pessoa direta, focada em resultados e orientada para ação. Assume desafios com confiança e determinação.",
+    fullDescription: `Você é uma pessoa naturalmente orientada para resultados, com forte senso de urgência e determinação. Seu perfil é marcado pela capacidade de tomar decisões rápidas, assumir riscos calculados e enfrentar desafios de frente. Você não tem medo de assumir responsabilidades e prefere estar no controle das situações.
+
+Sua abordagem ao trabalho é prática e objetiva. Você se concentra no que precisa ser feito e age rapidamente para alcançar metas. A eficiência e a produtividade são valores centrais, e você tem pouca paciência para processos lentos ou burocráticos que não agregam valor direto aos resultados.
+
+Em ambientes profissionais, você tende a assumir naturalmente posições de liderança, mesmo quando não é formalmente designado. Sua confiança e assertividade inspiram outros a seguirem sua direção. No entanto, pode haver desafios em situações que exigem paciência, diplomacia ou atenção a detalhes que você considera secundários.
+
+Você se motiva por desafios significativos e pela oportunidade de fazer diferença mensurável. Ambientes de alta pressão não apenas não te incomodam, mas podem até energizar você, desde que haja autonomia para agir e clara conexão entre esforço e resultados.`,
+    potentials: "Capacidade excepcional de liderança e tomada de decisão rápida. Coragem para assumir riscos e enfrentar situações difíceis. Alta produtividade e foco em resultados. Habilidade para motivar outros através da ação e exemplo. Eficiência em superar obstáculos e resolver problemas práticos rapidamente.",
+    interpersonalRelations: "Nas relações interpessoais, você é direto e valoriza transparência. Prefere comunicação objetiva e pode se frustrar com excessiva formalidade ou 'rodeios'. Respeita pessoas que demonstram competência e confiança. Pode ser percebido como intimidador por perfis mais sensíveis, embora sua intenção seja apenas ser eficiente.",
+    decisionMaking: "Você toma decisões de forma rápida e confiante, baseando-se em informações disponíveis e intuição. Prefere agir e ajustar depois do que esperar por informações perfeitas. Assume a responsabilidade pelas consequências de suas escolhas sem hesitação.",
+    primaryMotivator: {
+      title: "Desafios e Conquistas",
+      description: "Você se motiva principalmente por desafios significativos e pela oportunidade de alcançar resultados impressionantes. Metas ambiciosas energizam você, especialmente quando há clara medição de sucesso. A possibilidade de superar obstáculos difíceis e provar sua capacidade é extremamente motivadora."
+    },
+    secondaryMotivator: {
+      title: "Autonomia e Controle",
+      description: "Ter autonomia para tomar decisões e controlar o próprio destino profissional é crucial para sua satisfação. Você se frustra em ambientes onde precisa pedir permissão constantemente ou onde há excesso de controle sobre como você trabalha."
+    },
+    fears: [
+      "Perder controle sobre situações importantes",
+      "Ser visto como fraco ou incompetente",
+      "Ambientes que limitam sua capacidade de agir",
+      "Processos lentos que impedem progresso",
+      "Dependência excessiva de outros para resultados",
+      "Estagnação ou falta de desafios",
+      "Ser manipulado ou controlado por outros"
+    ],
+    organizationalFit: `Você se adapta melhor a organizações dinâmicas, orientadas para crescimento e resultados. Ambientes de startup, vendas competitivas, gestão de projetos desafiadores ou qualquer função onde há clara conexão entre desempenho e recompensa são ideais.
+
+Posições de liderança, gestão de mudanças, desenvolvimento de novos negócios ou funções que exigem tomada rápida de decisões são especialmente adequadas. Evite ambientes excessivamente burocráticos ou onde a política organizacional é mais importante que resultados.`,
+    problemSolving: [
+      "Identifica rapidamente o cerne do problema",
+      "Age decisivamente para implementar soluções",
+      "Assume riscos calculados quando necessário",
+      "Foca em resultados práticos e mensuráveis",
+      "Não se intimida com a magnitude dos desafios"
+    ],
+    developmentAreas: [
+      "Desenvolver mais paciência com processos e pessoas",
+      "Aprimorar habilidades de escuta ativa",
+      "Considerar mais o impacto emocional das decisões nos outros",
+      "Dar mais tempo para análise detalhada quando apropriado",
+      "Delegar com mais confiança em vez de sempre assumir controle"
+    ],
+    communicationTips: {
+      doList: [
+        "Seja direto e objetivo, vá direto ao ponto",
+        "Apresente fatos e resultados concretos",
+        "Reconheça suas conquistas e competência",
+        "Dê autonomia e evite micro-gerenciamento",
+        "Forneça desafios significativos",
+        "Respeite seu tempo e eficiência"
+      ],
+      dontList: [
+        "Não seja excessivamente emocional ou pessoal",
+        "Evite detalhes desnecessários ou explanações longas",
+        "Não questione suas decisões publicamente",
+        "Evite limitar sua autonomia sem motivo claro",
+        "Não demore para dar feedback ou tomar decisões",
+        "Não interprete sua assertividade como agressividade"
+      ]
+    }
+  },
+  'I': {
+    name: "Comunicador",
+    description: "Pessoa extrovertida, entusiasta e persuasiva. Inspira e influencia outros através de comunicação calorosa.",
+    fullDescription: `Você é uma pessoa naturalmente extrovertida e comunicativa, que se energiza através de interações sociais. Seu perfil é marcado pelo entusiasmo contagiante, otimismo e habilidade natural para influenciar e inspirar outros. Você tem facilidade para criar conexões rapidamente e construir redes amplas de relacionamentos.
+
+Sua abordagem ao trabalho é colaborativa e criativa. Você prefere ambientes dinâmicos onde pode interagir com pessoas diversas e onde suas ideias são valorizadas. A inovação e a criatividade fluem naturalmente quando você está em ambientes estimulantes e sociais.
+
+Em contextos profissionais, você se destaca em papéis que envolvem comunicação, persuasão, apresentações e trabalho em equipe. Sua capacidade de ver o lado positivo das situações e motivar outros é um ativo valioso. No entanto, pode haver desafios em tarefas que exigem trabalho solitário prolongado, atenção excessiva a detalhes ou seguimento rígido de processos.
+
+Você se motiva por reconhecimento, aprovação social e pela oportunidade de fazer diferença na vida das pessoas. Ambientes onde sua criatividade é valorizada e onde há diversidade de atividades e interações são ideais.`,
+    potentials: "Excelente comunicador com habilidade natural para persuadir e influenciar. Capacidade de criar entusiasmo e motivar equipes. Networking eficaz e construção rápida de relacionamentos. Criatividade e pensamento inovador. Otimismo que inspira confiança em momentos difíceis.",
+    interpersonalRelations: "Você é caloroso, expressivo e genuinamente interessado nas pessoas. Cria conexões facilmente e mantém redes amplas de relacionamentos. Sua energia positiva atrai outros e você é frequentemente o centro de atenção em grupos sociais.",
+    decisionMaking: "Tende a tomar decisões baseadas em intuição e sentimentos sobre as pessoas envolvidas. Pode ser impulsivo em decisões que parecem empolgantes. Prefere consultar outros e buscar aprovação antes de compromissos maiores.",
+    primaryMotivator: {
+      title: "Reconhecimento e Aprovação Social",
+      description: "Você se motiva profundamente por reconhecimento público e aprovação de outros. Feedback positivo, elogios sinceros e ser visto como valioso pela equipe são extremamente importantes. Oportunidades de apresentar ideias, liderar discussões e estar em posição de visibilidade energizam você."
+    },
+    secondaryMotivator: {
+      title: "Variedade e Novidade",
+      description: "Diversidade de atividades e novos desafios mantêm seu interesse e energia. Rotinas repetitivas rapidamente se tornam entediantes. Você se motiva por projetos que oferecem variedade, oportunidade de conhecer novas pessoas e explorar novas ideias."
+    },
+    fears: [
+      "Rejeição social ou ser excluído do grupo",
+      "Perda de aprovação e reconhecimento",
+      "Trabalho isolado sem interação humana",
+      "Ambientes frios e puramente técnicos",
+      "Ser ignorado ou não ouvido",
+      "Rotinas monótonas sem variedade",
+      "Críticas públicas ou humilhação",
+      "Ambientes onde não há espaço para criatividade"
+    ],
+    organizationalFit: `Você prospera em organizações dinâmicas, inovadoras e socialmente engajadas. Ambientes de marketing, vendas, relações públicas, recursos humanos, treinamento ou qualquer função que envolva comunicação intensa e interação com pessoas são ideais.
+
+Funções que permitem criatividade, colaboração e onde há reconhecimento público de conquistas são especialmente satisfatórias. Startups, empresas de tecnologia com cultura jovem, organizações sem fins lucrativos ou ambientes corporativos que valorizam inovação e pessoas são adequados. Evite ambientes excessivamente formais, burocráticos ou onde o trabalho é principalmente solitário e repetitivo.`,
+    problemSolving: [
+      "Aborda problemas com criatividade e pensamento inovador",
+      "Envolve outros para gerar ideias colaborativas",
+      "Mantém otimismo mesmo diante de desafios",
+      "Busca soluções que beneficiem relacionamentos",
+      "Pode precisar focar mais em detalhes de implementação"
+    ],
+    developmentAreas: [
+      "Desenvolver mais foco e disciplina para tarefas detalhadas",
+      "Aprimorar capacidade de trabalho independente",
+      "Melhorar follow-through em compromissos assumidos",
+      "Desenvolver mais objetividade em decisões",
+      "Aprender a lidar com críticas construtivas sem levar para o pessoal",
+      "Balancear entusiasmo com análise realista de riscos"
+    ],
+    communicationTips: {
+      doList: [
+        "Seja caloroso, amigável e expressivo",
+        "Demonstre entusiasmo genuíno por suas ideias",
+        "Reconheça publicamente suas contribuições",
+        "Permita tempo para socialização e discussões",
+        "Valorize sua criatividade e perspectivas únicas",
+        "Forneça feedback positivo frequente"
+      ],
+      dontList: [
+        "Não seja excessivamente formal ou frio",
+        "Evite isolá-los ou limitar interações sociais",
+        "Não critique publicamente ou de forma dura",
+        "Evite ambientes monótonos sem estímulos",
+        "Não ignore suas ideias ou contribuições",
+        "Não espere atenção excessiva a detalhes sem suporte"
+      ]
+    }
+  },
+  'S': {
+    name: "Planejador",
+    description: "Pessoa paciente, leal e estável. Valoriza harmonia, consistência e relacionamentos duradouros.",
+    fullDescription: `Você é uma pessoa naturalmente paciente e estável, que valoriza consistência e previsibilidade. Seu perfil é marcado pela lealdade, confiabilidade e capacidade de manter ritmo constante de trabalho. Você é o tipo de pessoa em quem outros podem confiar para estar presente e entregar resultados de forma consistente.
+
+Sua abordagem ao trabalho privilegia qualidade sobre velocidade. Você prefere ter tempo adequado para fazer as coisas bem feitas, seguindo processos testados e comprovados. A estabilidade e a harmonia no ambiente de trabalho são importantes para você, e você contribui ativamente para criar atmosfera cooperativa.
+
+Em contextos profissionais, você se destaca em papéis que exigem paciência, atenção cuidadosa e desenvolvimento de relacionamentos de longo prazo. Sua capacidade de manter a calma sob pressão e apoiar outros durante mudanças é valiosa. No entanto, pode haver desafios em situações que exigem mudanças rápidas, confrontos diretos ou tomada de decisões sob pressão extrema.
+
+Você se motiva por segurança, pertencimento a um grupo coeso e pela oportunidade de contribuir de forma significativa para objetivos compartilhados. Ambientes onde há respeito mútuo, processos claros e reconhecimento da importância de cada contribuição são ideais.`,
+    potentials: "Extremamente confiável e consistente na entrega de resultados. Habilidade natural para criar harmonia e estabilidade em equipes. Paciência para desenvolver projetos de longo prazo com qualidade. Lealdade que constrói relacionamentos duradouros. Capacidade de ouvir e apoiar outros de forma genuína.",
+    interpersonalRelations: "Você é acessível, paciente e genuinamente interessado no bem-estar dos outros. Constrói relacionamentos profundos baseados em confiança mútua. É visto como pessoa confiável e solidária, sempre disposto a ajudar colegas.",
+    decisionMaking: "Prefere tomar decisões de forma ponderada, consultando outros e considerando impactos de longo prazo. Evita mudanças precipitadas. Pode ter dificuldade em decidir rapidamente sob pressão, preferindo ter tempo para avaliar adequadamente.",
+    primaryMotivator: {
+      title: "Segurança e Estabilidade",
+      description: "Você se motiva por ambientes previsíveis onde há segurança e estabilidade. Processos claros, expectativas bem definidas e ritmo consistente de trabalho são importantes. A possibilidade de desenvolver expertise profunda em sua área e construir carreira sólida é motivadora."
+    },
+    secondaryMotivator: {
+      title: "Pertencimento e Contribuição",
+      description: "Sentir-se parte de um grupo coeso e contribuir para objetivos compartilhados é fundamental. Você valoriza ambientes onde as pessoas se apoiam mutuamente e onde sua lealdade e dedicação são reconhecidas e apreciadas."
+    },
+    fears: [
+      "Mudanças abruptas sem tempo para adaptação",
+      "Conflitos e confrontos que perturbem a harmonia",
+      "Instabilidade e incerteza no trabalho",
+      "Pressão excessiva por resultados imediatos",
+      "Ambientes competitivos e hostis",
+      "Perda de relacionamentos importantes",
+      "Ser forçado a tomar decisões rápidas sem reflexão",
+      "Isolamento ou exclusão do grupo"
+    ],
+    organizationalFit: `Você prospera em organizações estáveis com processos bem estabelecidos e cultura de respeito mútuo. Ambientes de educação, saúde, serviço público, administração, operações ou qualquer função onde consistência e confiabilidade são valorizadas são ideais.
+
+Funções que envolvem suporte a longo prazo, desenvolvimento de relacionamentos duradouros com clientes ou colegas, ou trabalho em equipes colaborativas são especialmente satisfatórias. Organizações maduras com valores fortes e baixa rotatividade são adequadas. Evite ambientes de mudanças constantes, alta pressão ou competição acirrada.`,
+    problemSolving: [
+      "Aborda problemas de forma sistemática e cuidadosa",
+      "Busca soluções que mantenham harmonia e estabilidade",
+      "Consulta outros e busca consenso",
+      "Prefere métodos testados e comprovados",
+      "Considera impactos de longo prazo das soluções"
+    ],
+    developmentAreas: [
+      "Desenvolver maior conforto com mudanças e incertezas",
+      "Aprimorar capacidade de assertividade e estabelecer limites",
+      "Aumentar velocidade na tomada de decisões quando necessário",
+      "Aprender a lidar com conflitos de forma mais direta",
+      "Desenvolver maior flexibilidade para adaptar a novas situações",
+      "Aumentar disposição para assumir riscos calculados"
+    ],
+    communicationTips: {
+      doList: [
+        "Seja paciente, gentil e respeitoso",
+        "Forneça tempo adequado para mudanças e decisões",
+        "Demonstre apreciação por lealdade e consistência",
+        "Crie ambiente seguro para expressar preocupações",
+        "Explique mudanças com antecedência e contexto",
+        "Valorize contribuições estáveis e confiáveis"
+      ],
+      dontList: [
+        "Não seja abrupto ou excessivamente direto",
+        "Evite mudanças sem explicação ou preparação",
+        "Não crie ambientes de alta pressão desnecessária",
+        "Evite confrontos públicos",
+        "Não force decisões rápidas sem necessidade",
+        "Não ignore a importância da harmonia do grupo"
+      ]
+    }
+  },
+  'C': {
+    name: "Analista",
+    description: "Pessoa meticulosa, precisa e sistemática. Valoriza qualidade, exatidão e processos bem definidos.",
+    fullDescription: `Você é uma pessoa naturalmente orientada para qualidade e precisão. Seu perfil é marcado pela atenção excepcional a detalhes, pensamento analítico e preferência por processos sistemáticos e bem estruturados. Você valoriza exatidão e tem padrões elevados para seu próprio trabalho.
+
+Sua abordagem ao trabalho é metódica e cuidadosa. Você prefere ter tempo adequado para analisar informações, considerar diferentes perspectivas e garantir que cada aspecto seja tratado com a devida atenção. A qualidade do resultado é mais importante que velocidade, e você se orgulha de entregar trabalho impecável.
+
+Em contextos profissionais, você se destaca em funções que exigem análise profunda, precisão técnica e pensamento crítico. Sua capacidade de identificar problemas potenciais e desenvolver soluções robustas é valiosa. No entanto, pode haver desafios em situações que exigem decisões rápidas com informações incompletas ou em ambientes muito dinâmicos e imprevisíveis.
+
+Você se motiva pela oportunidade de desenvolver expertise profunda, resolver problemas complexos e produzir trabalho de alta qualidade. Ambientes onde há padrões claros, processos bem definidos e reconhecimento pela excelência técnica são ideais.`,
+    potentials: "Atenção excepcional a detalhes e precisão técnica. Capacidade analítica para identificar problemas e desenvolver soluções robustas. Pensamento crítico e questionamento construtivo. Padrões elevados que garantem qualidade superior. Habilidade para processos sistemáticos e documentação completa.",
+    interpersonalRelations: "Você é reservado e cuidadoso em relacionamentos, preferindo qualidade sobre quantidade. Constrói confiança gradualmente através de demonstração de competência e confiabilidade. Valoriza honestidade intelectual e comunicação precisa.",
+    decisionMaking: "Toma decisões baseadas em análise cuidadosa de dados e informações disponíveis. Prefere ter tempo adequado para pesquisar e considerar todas as opções. Pode ser perfeccionista, buscando a decisão 'ideal' em vez de simplesmente adequada.",
+    primaryMotivator: {
+      title: "Excelência e Qualidade",
+      description: "Você se motiva profundamente pela oportunidade de produzir trabalho de altíssima qualidade. Resolver problemas complexos, desenvolver soluções elegantes e ser reconhecido por expertise técnica são extremamente importantes. A possibilidade de aprofundar conhecimentos e dominar áreas especializadas energiza você."
+    },
+    secondaryMotivator: {
+      title: "Autonomia e Processos Claros",
+      description: "Ter autonomia para trabalhar de forma independente, seguindo processos bem definidos, é crucial. Você valoriza ambientes onde há padrões claros de qualidade e onde pode trabalhar sem interrupções desnecessárias para produzir resultados precisos."
+    },
+    fears: [
+      "Cometer erros ou produzir trabalho de baixa qualidade",
+      "Ser criticado por incompetência técnica",
+      "Ambientes caóticos sem processos claros",
+      "Pressão para tomar decisões precipitadas",
+      "Falta de informações adequadas para decisões",
+      "Padrões inconsistentes ou mal definidos",
+      "Ser forçado a 'cortar caminho' comprometendo qualidade",
+      "Ambientes onde detalhes são ignorados"
+    ],
+    organizationalFit: `Você prospera em organizações que valorizam excelência técnica, qualidade e precisão. Ambientes de engenharia, finanças, pesquisa, controle de qualidade, compliance, TI ou qualquer função técnica especializada são ideais.
+
+Funções que exigem análise profunda, documentação detalhada, desenvolvimento de processos ou trabalho especializado são especialmente satisfatórias. Organizações maduras com processos bem estabelecidos, padrões claros de qualidade e respeito por expertise técnica são adequadas. Evite ambientes excessivamente dinâmicos, onde decisões são tomadas sem análise adequada ou onde qualidade é sacrificada por velocidade.`,
+    problemSolving: [
+      "Analisa problemas de forma sistemática e completa",
+      "Identifica causas raízes em vez de apenas sintomas",
+      "Desenvolve soluções robustas e bem fundamentadas",
+      "Documenta processos e raciocínios detalhadamente",
+      "Antecipa problemas potenciais através de análise cuidadosa"
+    ],
+    developmentAreas: [
+      "Desenvolver maior conforto com decisões baseadas em informações incompletas",
+      "Aprimorar velocidade de tomada de decisão quando apropriado",
+      "Balancear perfeccionismo com pragmatismo",
+      "Melhorar habilidades de comunicação interpessoal",
+      "Desenvolver maior tolerância para ambiguidade",
+      "Aprender a delegar confiando em padrões de outros"
+    ],
+    communicationTips: {
+      doList: [
+        "Seja preciso, factual e bem preparado",
+        "Forneça dados e lógica para suportar argumentos",
+        "Respeite necessidade de tempo para análise",
+        "Reconheça expertise técnica e qualidade do trabalho",
+        "Estabeleça padrões claros e processos definidos",
+        "Permita trabalho independente sem micro-gerenciamento"
+      ],
+      dontList: [
+        "Não seja vago ou impreciso na comunicação",
+        "Evite pressionar por decisões sem dados adequados",
+        "Não ignore detalhes importantes",
+        "Evite mudanças de padrões sem justificativa clara",
+        "Não critique trabalho sem base técnica sólida",
+        "Não force interações sociais desnecessárias"
+      ]
+    }
+  }
+};
+
+// Função para obter análise detalhada de fator individual DISC
+export function getFactorAnalysis(
+  factor: 'D' | 'I' | 'S' | 'C',
+  naturalValue: number,
+  adaptedValue: number,
+  perceptionValue?: number,
+  demandValue?: number
+): FactorAnalysis {
+  const factorNames = {
+    D: { trait: getTraitName('D', naturalValue), description: getFactorDescription('D', naturalValue) },
+    I: { trait: getTraitName('I', naturalValue), description: getFactorDescription('I', naturalValue) },
+    S: { trait: getTraitName('S', naturalValue), description: getFactorDescription('S', naturalValue) },
+    C: { trait: getTraitName('C', naturalValue), description: getFactorDescription('C', naturalValue) }
+  };
+
+  const diff = adaptedValue - naturalValue;
+  const adaptedDirection: 'crescente' | 'decrescente' | 'equilibrado' = 
+    diff > 5 ? 'crescente' : diff < -5 ? 'decrescente' : 'equilibrado';
+
+  const adaptedAnalyses = {
+    D: {
+      crescente: `Você está se adaptando para ser mais assertivo e direto do que sua natureza. Isso pode indicar que seu ambiente atual exige mais liderança, tomada rápida de decisões e enfrentamento de desafios. Embora essa adaptação possa ser eficaz no curto prazo, pode gerar tensão se mantida por períodos prolongados.`,
+      decrescente: `Você está moderando sua assertividade natural. Isso pode ocorrer em ambientes onde a colaboração e a diplomacia são mais valorizadas que a assertividade direta. Essa adaptação pode ajudá-lo a trabalhar melhor em equipe, embora você possa sentir frustração por não poder agir tão diretamente quanto gostaria.`,
+      equilibrado: `Seu nível de assertividade adaptado está alinhado com sua natureza. Você está atuando de forma autêntica, sem necessidade de ajustar significativamente seu estilo de lidar com problemas e desafios.`
+    },
+    I: {
+      crescente: `Você está se esforçando para ser mais comunicativo e sociável do que naturalmente se sente. Isso pode indicar que seu ambiente valoriza networking, apresentações e interações frequentes. Essa adaptação pode expandir suas habilidades, mas também pode ser cansativa se mantida constantemente.`,
+      decrescente: `Você está contendo sua extroversão natural. Isso pode ocorrer em ambientes mais formais, técnicos ou onde há menos ênfase em interações sociais. Essa adaptação pode ajudá-lo a focar em trabalho individual, embora você possa sentir falta de mais interação social.`,
+      equilibrado: `Seu nível de sociabilidade adaptado está alinhado com sua natureza. Você pode se expressar autenticamente sem necessidade de forçar ou reprimir suas tendências comunicativas.`
+    },
+    S: {
+      crescente: `Você está desenvolvendo mais paciência e estabilidade do que sua natureza sugere. Isso pode indicar que você está em um ambiente que requer mais consistência, processos estabelecidos e ritmo mais constante. Essa adaptação pode melhorar sua confiabilidade, embora possa limitar sua versatilidade.`,
+      decrescente: `Você está sendo mais flexível e dinâmico do que sua preferência natural. Isso pode ocorrer em ambientes de mudanças frequentes ou que exigem maior adaptabilidade. Essa mudança pode expandir sua zona de conforto, mas também pode gerar estresse se as mudanças forem muito intensas.`,
+      equilibrado: `Seu ritmo de trabalho adaptado está alinhado com suas preferências naturais. Você pode trabalhar em um ritmo que se sente confortável e autêntico.`
+    },
+    C: {
+      crescente: `Você está aumentando seu foco em detalhes, precisão e processos além de sua inclinação natural. Isso pode indicar que seu papel exige maior rigor técnico, compliance ou atenção a padrões. Essa adaptação pode melhorar a qualidade do seu trabalho, mas pode também tornar você excessivamente cauteloso.`,
+      decrescente: `Você está sendo mais flexível com processos e padrões do que sua natureza prefere. Isso pode ocorrer em ambientes mais dinâmicos onde velocidade é mais importante que perfeição. Essa adaptação pode aumentar sua agilidade, embora você possa se sentir desconfortável com padrões mais baixos.`,
+      equilibrado: `Seu nível de atenção a detalhes e processos está alinhado com sua natureza. Você pode trabalhar com o nível de precisão que se sente confortável.`
+    }
+  };
+
+  const perceptionAnalyses = {
+    D: `${perceptionValue && perceptionValue > naturalValue ? 'Outros tendem a vê-lo como mais assertivo e dominante do que você realmente se sente.' : perceptionValue && perceptionValue < naturalValue ? 'Outros podem não perceber toda a sua assertividade e determinação interna.' : 'A percepção externa está alinhada com sua natureza.'}`,
+    I: `${perceptionValue && perceptionValue > naturalValue ? 'Outros o veem como mais extrovertido e comunicativo do que você se sente internamente.' : perceptionValue && perceptionValue < naturalValue ? 'Sua sociabilidade pode não ser tão evidente aos outros quanto você a sente.' : 'A percepção externa está alinhada com sua natureza.'}`,
+    S: `${perceptionValue && perceptionValue > naturalValue ? 'Outros o percebem como mais paciente e estável do que você se sente.' : perceptionValue && perceptionValue < naturalValue ? 'Sua necessidade de estabilidade pode não ser tão aparente aos outros.' : 'A percepção externa está alinhada com sua natureza.'}`,
+    C: `${perceptionValue && perceptionValue > naturalValue ? 'Outros veem você como mais detalhista e preciso do que você se sente internamente.' : perceptionValue && perceptionValue < naturalValue ? 'Seu foco em qualidade pode não ser tão evidente aos outros.' : 'A percepção externa está alinhada com sua natureza.'}`
+  };
+
+  const demandAnalyses = {
+    D: `${demandValue && demandValue > naturalValue ? 'Seu ambiente exige mais assertividade e tomada de decisões do que sua inclinação natural.' : demandValue && demandValue < naturalValue ? 'Seu ambiente permite menos assertividade do que você naturalmente possui.' : 'As demandas do ambiente estão alinhadas com sua natureza.'}`,
+    I: `${demandValue && demandValue > naturalValue ? 'Seu ambiente exige mais comunicação e interação social do que você naturalmente prefere.' : demandValue && demandValue < naturalValue ? 'Seu ambiente oferece menos oportunidades de interação do que você desejaria.' : 'As demandas do ambiente estão alinhadas com sua natureza.'}`,
+    S: `${demandValue && demandValue > naturalValue ? 'Seu ambiente exige mais paciência e estabilidade do que sua natureza fornece naturalmente.' : demandValue && demandValue < naturalValue ? 'Seu ambiente é mais dinâmico do que sua preferência natural por estabilidade.' : 'As demandas do ambiente estão alinhadas com sua natureza.'}`,
+    C: `${demandValue && demandValue > naturalValue ? 'Seu ambiente exige mais atenção a detalhes e processos do que sua inclinação natural.' : demandValue && demandValue < naturalValue ? 'Seu ambiente permite mais flexibilidade do que você naturalmente prefere.' : 'As demandas do ambiente estão alinhadas com sua natureza.'}`
+  };
+
+  return {
+    naturalTrait: factorNames[factor].trait,
+    naturalDescription: factorNames[factor].description,
+    adaptedDirection,
+    adaptedAnalysis: adaptedAnalyses[factor][adaptedDirection],
+    perceptionAnalysis: perceptionValue !== undefined ? perceptionAnalyses[factor] : undefined,
+    demandAnalysis: demandValue !== undefined ? demandAnalyses[factor] : undefined
+  };
+}
+
+function getTraitName(factor: 'D' | 'I' | 'S' | 'C', value: number): string {
+  const traits = {
+    D: value > 70 ? 'DOMINANTE' : value > 50 ? 'ASSERTIVO' : value > 30 ? 'MODERADO' : 'CAUTELOSO',
+    I: value > 70 ? 'INFLUENTE' : value > 50 ? 'COMUNICATIVO' : value > 30 ? 'DISCRETO' : 'RESERVADO',
+    S: value > 70 ? 'ESTÁVEL' : value > 50 ? 'PACIENTE' : value > 30 ? 'ADAPTÁVEL' : 'DINÂMICO',
+    C: value > 70 ? 'ANALÍTICO' : value > 50 ? 'CUIDADOSO' : value > 30 ? 'FLEXÍVEL' : 'INDEPENDENTE'
+  };
+  return traits[factor];
+}
+
+function getFactorDescription(factor: 'D' | 'I' | 'S' | 'C', value: number): string {
+  const descriptions = {
+    D: {
+      high: 'Você naturalmente assume controle de situações, busca desafios e toma decisões rapidamente. Prefere estar em posição de liderança e não tem medo de enfrentar problemas de frente. Sua assertividade é uma característica central.',
+      medium: 'Você demonstra assertividade quando necessário, mas não precisa estar sempre no controle. Consegue equilibrar liderança com colaboração, adaptando seu estilo conforme a situação exige.',
+      low: 'Você prefere abordagens mais diplomáticas e menos diretas. Tende a evitar confrontos e valoriza consenso. Sua força está em mediar e facilitar, não em impor decisões.'
+    },
+    I: {
+      high: 'Você é naturalmente sociável, expressivo e se energiza através de interações com pessoas. Comunicação é sua força, e você tem facilidade para influenciar e inspirar outros. Ambientes sociais são onde você prospera.',
+      medium: 'Você consegue ser sociável quando necessário, mas também valoriza momentos de trabalho mais focado. Sua comunicação é eficaz sem ser excessivamente expansiva.',
+      low: 'Você prefere interações mais limitadas e profundas a networking amplo. Tende a ser mais reservado e reflexivo. Sua força está em comunicação escrita ou em grupos pequenos, não em grandes apresentações.'
+    },
+    S: {
+      high: 'Você valoriza estabilidade, consistência e ambientes previsíveis. É paciente, leal e prefere processos estabelecidos. Mudanças abruptas podem ser desconfortáveis. Sua confiabilidade é um ativo importante.',
+      medium: 'Você aprecia estabilidade mas consegue adaptar-se a mudanças quando necessário. Equilibra necessidade de previsibilidade com flexibilidade razoável.',
+      low: 'Você é naturalmente adaptável e confortável com mudanças. Prefere variedade a rotina e pode se sentir entediado em ambientes muito estáveis. Sua versatilidade é uma força.'
+    },
+    C: {
+      high: 'Você valoriza precisão, qualidade e processos sistemáticos. Atenção a detalhes é natural para você, e você tem padrões elevados. Prefere tempo adequado para análise e documentação completa.',
+      medium: 'Você presta atenção a detalhes importantes mas não se perde em minúcias desnecessárias. Consegue equilibrar qualidade com pragmatismo.',
+      low: 'Você prefere visão geral a detalhes minuciosos. Trabalha de forma mais intuitiva e flexível, não se prendendo excessivamente a processos. Sua força está em adaptabilidade e pensamento conceitual.'
+    }
+  };
+
+  const level = value > 60 ? 'high' : value > 40 ? 'medium' : 'low';
+  return descriptions[factor][level];
+}
+
 export const DISC_GROUPS: DISCGroup[] = [
   {
     group: 1,
