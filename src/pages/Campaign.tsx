@@ -163,19 +163,20 @@ const Campaign = () => {
   const handleDeleteCandidate = async () => {
     if (!candidateToDelete) return;
     
-    setDeletingCandidate(candidateToDelete.id);
+    const candidateId = candidateToDelete.id;
+    setDeletingCandidate(candidateId);
 
     try {
       const { error } = await supabase
         .from("assessments")
         .delete()
-        .eq("id", candidateToDelete.id);
+        .eq("id", candidateId);
 
       if (error) throw error;
 
       toast.success("Candidato deletado com sucesso!");
-      setCandidateToDelete(null);
       fetchCampaignData();
+      setCandidateToDelete(null);
     } catch (error: any) {
       console.error("Error deleting candidate:", error);
       toast.error(error.message || "Erro ao deletar candidato");
@@ -392,7 +393,14 @@ const Campaign = () => {
         </div>
       </main>
 
-      <AlertDialog open={!!candidateToDelete} onOpenChange={(open) => !open && setCandidateToDelete(null)}>
+      <AlertDialog 
+        open={!!candidateToDelete} 
+        onOpenChange={(open) => {
+          if (!open && !deletingCandidate) {
+            setCandidateToDelete(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
@@ -404,10 +412,13 @@ const Campaign = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={!!deletingCandidate}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteCandidate}
-              className="bg-destructive hover:bg-destructive/90"
+              disabled={!!deletingCandidate}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deletingCandidate ? "Deletando..." : "Deletar"}
             </AlertDialogAction>
