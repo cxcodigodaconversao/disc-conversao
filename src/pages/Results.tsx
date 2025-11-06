@@ -5,6 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Brain, Download, ArrowLeft, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
+import { 
+  PROFILE_BASE_DESCRIPTIONS, 
+  ROLE_MAPPINGS, 
+  STRATEGIC_INTERPRETATIONS,
+  getCombinedProfile,
+  generateHiringConclusion,
+  DECISION_MATRIX,
+  EVOLUTION_SCALE
+} from "@/lib/disc-data";
 
 export default function Results() {
   const { id } = useParams();
@@ -326,6 +335,142 @@ export default function Results() {
               <p className="text-2xl font-bold">{result.leadership_style?.methodical || 0}%</p>
               <p className="text-sm text-muted-foreground">Metódico</p>
             </div>
+          </div>
+        </Card>
+
+        {/* Hiring Analysis Section */}
+        <Card className="p-8 mb-8">
+          <h2 className="text-2xl font-bold mb-6 text-primary">Análise para Contratação</h2>
+          
+          {/* Profile Base Table */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">1. Perfil Base – Descrição dos Quatro Estilos</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-primary/10">
+                    <th className="border p-2 text-left">Perfil</th>
+                    <th className="border p-2 text-left">Características-Chave</th>
+                    <th className="border p-2 text-left">Linguagem que Motiva</th>
+                    <th className="border p-2 text-left">Ponto de Atenção</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(PROFILE_BASE_DESCRIPTIONS).map(([factor, desc]) => (
+                    <tr key={factor} className="hover:bg-muted/50">
+                      <td className="border p-2 font-semibold">{factor}</td>
+                      <td className="border p-2">{desc.characteristics}</td>
+                      <td className="border p-2">{desc.motivatingLanguage}</td>
+                      <td className="border p-2 text-orange-600">{desc.attentionPoint}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Role Mapping */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">2. Mapeamento por Função</h3>
+            <div className="grid gap-4">
+              {Object.entries(ROLE_MAPPINGS).map(([role, mapping]) => (
+                <div key={role} className="border-l-4 border-primary pl-4 py-2">
+                  <h4 className="font-bold text-lg mb-2">{role}</h4>
+                  <p className="text-sm mb-1">
+                    <span className="font-semibold">Perfis indicados:</span>{' '}
+                    <span className="text-green-600">{mapping.mostIndicated.join(', ')}</span>
+                  </p>
+                  <p className="text-sm mb-1">
+                    <span className="font-semibold">Perfis que exigem adaptação:</span>{' '}
+                    <span className="text-orange-600">{mapping.requiresAdaptation.join(', ')}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-semibold">Desenvolvimento:</span> {mapping.developmentRecommendations}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Strategic Interpretation */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">3. Interpretação Estratégica deste Candidato</h3>
+            {(() => {
+              const combinedProfile = getCombinedProfile(
+                result.natural_d,
+                result.natural_i,
+                result.natural_s,
+                result.natural_c
+              );
+              const interpretation = STRATEGIC_INTERPRETATIONS[combinedProfile];
+              
+              return (
+                <div className="bg-secondary/10 p-4 rounded-lg">
+                  <p className="font-bold text-lg mb-3">Perfil: {combinedProfile}</p>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-semibold text-green-700">Potencial Profissional:</p>
+                      <p className="text-sm">{interpretation.potential}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-orange-700">Limites do Perfil:</p>
+                      <p className="text-sm">{interpretation.limitations}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-primary">Sugestão para Contratação:</p>
+                      <p className="text-sm">{interpretation.hiringRecommendation}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Decision Matrix */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">4. Matriz de Decisão de Contratação</h3>
+            <div className="space-y-2">
+              {Object.entries(DECISION_MATRIX).map(([key, item]) => (
+                <div key={key} className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <div>
+                    <p className="text-sm font-medium">{item.question}</p>
+                    <p className="text-xs text-muted-foreground">{item.highInterpretation}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Evolution Scale */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4">5. Escala de Potencial de Evolução</h3>
+            <div className="space-y-3">
+              {Object.entries(EVOLUTION_SCALE).map(([level, data]) => (
+                <div key={level} className="flex gap-3">
+                  <div className="font-bold text-primary min-w-[120px]">{level}</div>
+                  <div className="text-sm">
+                    <p>{data.description}</p>
+                    <p className="text-muted-foreground">Aplicação: {data.application}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Automatic Conclusion */}
+          <div className="bg-primary/5 p-6 rounded-lg border-2 border-primary">
+            <h3 className="text-xl font-semibold mb-4 text-primary">6. Conclusão Automática</h3>
+            <p className="text-sm leading-relaxed">
+              {generateHiringConclusion(
+                getCombinedProfile(result.natural_d, result.natural_i, result.natural_s, result.natural_c),
+                result.natural_d,
+                result.natural_i,
+                result.natural_s,
+                result.natural_c,
+                result.tension_level
+              )}
+            </p>
           </div>
         </Card>
       </div>

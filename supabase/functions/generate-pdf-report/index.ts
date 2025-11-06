@@ -363,6 +363,123 @@ function generateCompetenciesSVG(competencies: any): string {
   return svg;
 }
 
+// ============= DADOS PARA ANÁLISE DE CONTRATAÇÃO =============
+
+const PROFILE_BASE_DESCRIPTIONS: Record<string, any> = {
+  D: {
+    characteristics: 'Rápido, competitivo, direto, orientado a resultados',
+    motivatingLanguage: 'Desafios, metas e autonomia',
+    attentionPoint: 'Impaciência, pouca escuta'
+  },
+  I: {
+    characteristics: 'Comunicativo, inspirador, otimista, social',
+    motivatingLanguage: 'Reconhecimento, entusiasmo, ambiente leve',
+    attentionPoint: 'Falta de foco e disciplina'
+  },
+  S: {
+    characteristics: 'Calmo, cooperativo, empático, persistente',
+    motivatingLanguage: 'Segurança, previsibilidade, pertencimento',
+    attentionPoint: 'Resistência a mudanças'
+  },
+  C: {
+    characteristics: 'Analítico, detalhista, metódico, racional',
+    motivatingLanguage: 'Estrutura, clareza, perfeição',
+    attentionPoint: 'Excesso de crítica e lentidão na decisão'
+  }
+};
+
+const ROLE_MAPPINGS: Record<string, any> = {
+  'SDR': {
+    mostIndicated: ['D', 'I', 'DI', 'ID'],
+    requiresAdaptation: ['C', 'S', 'SC', 'CS'],
+    developmentRecommendations: 'Treinar ritmo, improviso e entusiasmo em contato frio. Desenvolver confiança na abordagem inicial.'
+  },
+  'Closer': {
+    mostIndicated: ['D', 'C', 'DC', 'CD', 'DI'],
+    requiresAdaptation: ['I', 'S', 'IS', 'SI'],
+    developmentRecommendations: 'Desenvolver escuta ativa e leitura de perfil; treinar assertividade e técnica de fechamento estruturado.'
+  },
+  'Suporte/Atendimento': {
+    mostIndicated: ['S', 'C', 'SC', 'CS', 'IS'],
+    requiresAdaptation: ['D', 'I'],
+    developmentRecommendations: 'Praticar empatia e paciência; criar checklists e rotinas de atendimento consistentes.'
+  },
+  'Gestor Comercial': {
+    mostIndicated: ['D', 'S', 'DS', 'DI'],
+    requiresAdaptation: ['I', 'C'],
+    developmentRecommendations: 'Treinar liderança situacional, equilibrando pressão por resultados com empatia pela equipe.'
+  },
+  'Head/Estratégico': {
+    mostIndicated: ['D', 'C', 'DC', 'CD'],
+    requiresAdaptation: ['I', 'IS'],
+    developmentRecommendations: 'Focar em visão analítica, delegar mais e dominar gestão de indicadores estratégicos.'
+  }
+};
+
+const STRATEGIC_INTERPRETATIONS: Record<string, any> = {
+  'DI': { potential: 'Alta performance em metas e execução; ótimo para ambiente de pressão', limitations: 'Impulsividade e tendência à centralização de decisões', hiringRecommendation: 'Ideal para SDR ou Closer sob liderança experiente que canalize sua energia' },
+  'ID': { potential: 'Excelente em networking e influência; fecha vendas com carisma', limitations: 'Pode perder foco em processos estruturados', hiringRecommendation: 'Perfeito para vendas consultivas e expansão de mercado' },
+  'IS': { potential: 'Comunicação humanizada, ótimo relacionamento interpessoal', limitations: 'Dificuldade com cobrança direta e confronto', hiringRecommendation: 'Bom para pós-venda, inside sales ou customer success' },
+  'SI': { potential: 'Estabilidade com sociabilidade; mantém clientes por longo prazo', limitations: 'Ritmo mais lento em prospecção ativa', hiringRecommendation: 'Excelente para gestão de contas e retenção' },
+  'DC': { potential: 'Visão estratégica, foco em processos e resultados mensuráveis', limitations: 'Pouca adaptabilidade e baixa empatia natural', hiringRecommendation: 'Excelente para gestor de performance, controle e analytics' },
+  'CD': { potential: 'Precisão técnica com capacidade de execução', limitations: 'Pode ser inflexível em mudanças rápidas', hiringRecommendation: 'Ideal para implementação de processos e gestão de qualidade' },
+  'SC': { potential: 'Metódico, confiável, disciplinado e detalhista', limitations: 'Evita conflitos, baixa velocidade de decisão', hiringRecommendation: 'Indicado para funções de suporte, operação e análise' },
+  'CS': { potential: 'Organização com empatia; cria processos humanizados', limitations: 'Resistência a mudanças abruptas', hiringRecommendation: 'Perfeito para suporte técnico e treinamento' },
+  'D': { potential: 'Foco extremo em resultados e liderança natural', limitations: 'Pode atropelar processos e pessoas', hiringRecommendation: 'Líder comercial ou gestor de expansão em ambientes desafiadores' },
+  'I': { potential: 'Facilidade em inspirar e engajar equipes', limitations: 'Inconstância e dispersão em tarefas operacionais', hiringRecommendation: 'Potencial de liderança de equipe criativa ou social selling' },
+  'S': { potential: 'Lealdade extrema e consistência operacional', limitations: 'Baixa adaptabilidade a mudanças', hiringRecommendation: 'Operações de suporte, atendimento ao cliente de longo prazo' },
+  'C': { potential: 'Excelência técnica e atenção a detalhes', limitations: 'Lentidão na tomada de decisões práticas', hiringRecommendation: 'Analista de processos, controle de qualidade, compliance' }
+};
+
+const DECISION_MATRIX: Record<string, any> = {
+  detailAttention: { question: 'O candidato tende a revisar antes de enviar?', highInterpretation: 'Alta = Conforme / Sólido para processos' },
+  pressureDecision: { question: 'Reage rápido em situações de incerteza?', highInterpretation: 'Alta = Dominante / Ideal para metas agressivas' },
+  energyLevel: { question: 'Demonstra entusiasmo e ritmo constante?', highInterpretation: 'Alta = Influente / Boa presença comercial' },
+  interpersonalRelationship: { question: 'Conecta e mantém vínculos facilmente?', highInterpretation: 'Alta = Estável / Ideal para retenção de clientes' },
+  changeFlexibility: { question: 'Adapta-se rápido a novas estratégias?', highInterpretation: 'Alta = Influente ou Dominante / útil em times dinâmicos' }
+};
+
+const EVOLUTION_SCALE: Record<string, any> = {
+  'Básico': { description: 'Possui habilidades iniciais, requer acompanhamento', application: 'SDR em formação' },
+  'Intermediário': { description: 'Já executa com autonomia e aprende rápido', application: 'Closer ou líder júnior' },
+  'Avançado': { description: 'Alta adaptabilidade e visão sistêmica', application: 'Gestor Comercial' },
+  'Sênior/Head': { description: 'Capacidade de multiplicar performance e treinar outros', application: 'Head Comercial ou Diretor de Expansão' }
+};
+
+const getCombinedProfile = (naturalD: number, naturalI: number, naturalS: number, naturalC: number): string => {
+  const scores = [
+    { factor: 'D', score: naturalD },
+    { factor: 'I', score: naturalI },
+    { factor: 'S', score: naturalS },
+    { factor: 'C', score: naturalC }
+  ].sort((a, b) => b.score - a.score);
+  const threshold = 24;
+  if (scores[0].score >= threshold && scores[1].score >= threshold) {
+    return scores[0].factor + scores[1].factor;
+  }
+  return scores[0].factor;
+};
+
+const generateHiringConclusion = (combinedProfile: string, naturalD: number, naturalI: number, naturalS: number, naturalC: number, tensionLevel: string): string => {
+  const interpretation = STRATEGIC_INTERPRETATIONS[combinedProfile] || STRATEGIC_INTERPRETATIONS['DI'];
+  const profileFactors = combinedProfile.split('');
+  const dominantTraits = profileFactors.map(f => {
+    switch(f) {
+      case 'D': return 'resultado';
+      case 'I': return 'influência social';
+      case 'S': return 'estabilidade';
+      case 'C': return 'conformidade';
+      default: return '';
+    }
+  }).join(' e ');
+  const tensionText = tensionLevel === 'high' 
+    ? 'Alta tensão entre perfil natural e adaptado sugere ambiente de pressão. Requer monitoramento de bem-estar.' 
+    : tensionLevel === 'moderate'
+    ? 'Tensão moderada indica adaptação controlada ao ambiente.'
+    : 'Baixa tensão indica alinhamento entre perfil natural e demandas do ambiente.';
+  return `O perfil identificado é ${combinedProfile}, com energia voltada a ${dominantTraits}. ${interpretation.hiringRecommendation} ${tensionText} Recomenda-se acompanhamento nos primeiros 90 dias com metas curtas e feedback semanal.`;
+};
+
 // ============= PDF GENERATION (FASE 2, 3, 4) =============
 
 async function generatePDFDocument(assessment: any, result: any): Promise<Uint8Array> {
@@ -408,14 +525,14 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     if (currentPage > 1) {
       doc.setFontSize(9);
       doc.setTextColor(...SITE_COLORS.textMuted);
-      doc.text('CIS Assessment - Relatório Confidencial', pageWidth - margin, 12, { align: 'right' });
+      doc.text('DISC da Conversão - Relatório Confidencial', pageWidth - margin, 12, { align: 'right' });
     }
   };
 
   const addFooter = () => {
     doc.setFontSize(8);
     doc.setTextColor(...SITE_COLORS.textMuted);
-    doc.text(`© 2025 CIS Assessment - Página ${currentPage}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text(`© 2025 DISC da Conversão - Página ${currentPage}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
   };
 
   const checkPageBreak = (neededSpace: number) => {
@@ -805,7 +922,7 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
   addSectionTitle('INTRODUÇÃO AO RELATÓRIO');
 
   const introParagraphs = [
-    'O Relatório CIS Assessment® foi desenvolvido para melhor compreender a personalidade e as potenciais competências dos indivíduos. Entender quais são os pontos fortes e as oportunidades de melhoria para, assim, promover tanto o desenvolvimento pessoal e profissional, como também para melhorar o nível de satisfação interna e externa.',
+    'O Relatório DISC da Conversão foi desenvolvido para melhor compreender a personalidade e as potenciais competências dos indivíduos. Entender quais são os pontos fortes e as oportunidades de melhoria para, assim, promover tanto o desenvolvimento pessoal e profissional, como também para melhorar o nível de satisfação interna e externa.',
     'Pesquisas na área do desenvolvimento humano mostram que os indivíduos mais eficazes são aqueles que conhecem melhor a si mesmos.',
     'Em nosso software medimos seis dimensões principais:'
   ];
@@ -1515,6 +1632,219 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     addText('Competências acima de 30 pontos indicam pontos fortes. Entre 15-30 são áreas de desenvolvimento. Abaixo de 15 requerem atenção especial se forem relevantes para sua função.');
   }
 
+  // ========== ANÁLISE PARA CONTRATAÇÃO ==========
+  addPage();
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(...SITE_COLORS.primary);
+  doc.text('ANÁLISE PARA CONTRATAÇÃO', margin, yPos);
+  yPos += 10;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textMedium);
+  addText('Esta seção fornece insights estratégicos para processos de contratação, mapeando adequação a funções comerciais e potencial de desenvolvimento.');
+  yPos += 10;
+
+  // 1. PERFIL BASE
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.info);
+  doc.text('1. Perfil Base – Descrição dos Quatro Estilos', margin, yPos);
+  yPos += 8;
+
+  // Tabela manual
+  const tableHeaders = ['Perfil', 'Características', 'Motiva', 'Atenção'];
+  const tableData = [
+    ['D', PROFILE_BASE_DESCRIPTIONS.D.characteristics, PROFILE_BASE_DESCRIPTIONS.D.motivatingLanguage, PROFILE_BASE_DESCRIPTIONS.D.attentionPoint],
+    ['I', PROFILE_BASE_DESCRIPTIONS.I.characteristics, PROFILE_BASE_DESCRIPTIONS.I.motivatingLanguage, PROFILE_BASE_DESCRIPTIONS.I.attentionPoint],
+    ['S', PROFILE_BASE_DESCRIPTIONS.S.characteristics, PROFILE_BASE_DESCRIPTIONS.S.motivatingLanguage, PROFILE_BASE_DESCRIPTIONS.S.attentionPoint],
+    ['C', PROFILE_BASE_DESCRIPTIONS.C.characteristics, PROFILE_BASE_DESCRIPTIONS.C.motivatingLanguage, PROFILE_BASE_DESCRIPTIONS.C.attentionPoint]
+  ];
+
+  const colWidths = [15, 55, 55, 45];
+  const rowHeight = 10;
+  let tableX = margin;
+
+  // Cabeçalho
+  doc.setFillColor(210, 188, 143);
+  doc.rect(tableX, yPos, contentWidth, rowHeight, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(255, 255, 255);
+  colWidths.forEach((width, i) => {
+    doc.text(tableHeaders[i], tableX + 2, yPos + 6);
+    tableX += width;
+  });
+  yPos += rowHeight;
+
+  // Linhas de dados
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  tableData.forEach((row, rowIndex) => {
+    tableX = margin;
+    const fillColor: [number, number, number] = rowIndex % 2 === 0 ? [250, 250, 250] : [255, 255, 255];
+    doc.setFillColor(...fillColor);
+    doc.rect(tableX, yPos, contentWidth, rowHeight, 'F');
+    
+    doc.setTextColor(...SITE_COLORS.textDark);
+    colWidths.forEach((width, colIndex) => {
+      const lines = doc.splitTextToSize(row[colIndex], width - 4);
+      doc.text(lines[0], tableX + 2, yPos + 6);
+      tableX += width;
+    });
+    yPos += rowHeight;
+  });
+  yPos += 10;
+
+  checkPageBreak(80);
+
+  // 2. MAPEAMENTO POR FUNÇÃO
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.info);
+  doc.text('2. Mapeamento por Função', margin, yPos);
+  yPos += 8;
+
+  Object.entries(ROLE_MAPPINGS).forEach(([role, mapping]: [string, any]) => {
+    checkPageBreak(25);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...SITE_COLORS.primary);
+    doc.text(`• ${role}`, margin + 3, yPos);
+    yPos += 5;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...SITE_COLORS.textDark);
+    doc.text(`Indicados: ${mapping.mostIndicated.join(', ')}`, margin + 8, yPos);
+    yPos += 4;
+    doc.text(`Adaptação: ${mapping.requiresAdaptation.join(', ')}`, margin + 8, yPos);
+    yPos += 4;
+    
+    doc.setTextColor(...SITE_COLORS.textMedium);
+    const devLines = doc.splitTextToSize(mapping.developmentRecommendations, contentWidth - 8);
+    devLines.forEach((line: string) => {
+      doc.text(line, margin + 8, yPos);
+      yPos += 4;
+    });
+    yPos += 4;
+  });
+
+  checkPageBreak(60);
+
+  // 3. INTERPRETAÇÃO ESTRATÉGICA
+  const combinedProfile = getCombinedProfile(result.natural_d, result.natural_i, result.natural_s, result.natural_c);
+  const interpretation = STRATEGIC_INTERPRETATIONS[combinedProfile] || STRATEGIC_INTERPRETATIONS['DI'];
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.info);
+  doc.text('3. Interpretação Estratégica deste Candidato', margin, yPos);
+  yPos += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  doc.text(`Perfil identificado: ${combinedProfile}`, margin + 3, yPos);
+  yPos += 8;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Potencial:', margin + 3, yPos);
+  yPos += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  addText(interpretation.potential);
+  yPos += 2;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Limites:', margin + 3, yPos);
+  yPos += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  addText(interpretation.limitations);
+  yPos += 2;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Sugestão:', margin + 3, yPos);
+  yPos += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  addText(interpretation.hiringRecommendation);
+  yPos += 8;
+
+  // 4. MATRIZ DE DECISÃO
+  checkPageBreak(60);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.info);
+  doc.text('4. Matriz de Decisão', margin, yPos);
+  yPos += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  Object.values(DECISION_MATRIX).forEach((item: any) => {
+    checkPageBreak(10);
+    doc.setTextColor(...SITE_COLORS.textDark);
+    doc.text(`• ${item.question}`, margin + 3, yPos);
+    yPos += 4;
+    doc.setTextColor(...SITE_COLORS.textMedium);
+    doc.text(`  ${item.highInterpretation}`, margin + 6, yPos);
+    yPos += 5;
+  });
+  yPos += 5;
+
+  // 5. ESCALA DE EVOLUÇÃO
+  checkPageBreak(50);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.info);
+  doc.text('5. Escala de Potencial', margin, yPos);
+  yPos += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  Object.entries(EVOLUTION_SCALE).forEach(([level, data]: [string, any]) => {
+    checkPageBreak(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...SITE_COLORS.primary);
+    doc.text(`${level}:`, margin + 3, yPos);
+    yPos += 4;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...SITE_COLORS.textDark);
+    doc.text(`${data.description} - ${data.application}`, margin + 6, yPos);
+    yPos += 5;
+  });
+  yPos += 6;
+
+  // 6. CONCLUSÃO
+  checkPageBreak(30);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.info);
+  doc.text('6. Conclusão Automática', margin, yPos);
+  yPos += 8;
+
+  const conclusion = generateHiringConclusion(
+    combinedProfile,
+    result.natural_d,
+    result.natural_i,
+    result.natural_s,
+    result.natural_c,
+    result.tension_level
+  );
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  addText(conclusion);
+  yPos += 10;
+
   // ========== PÁGINA 18: COMUNICAÇÃO ==========
   addPage();
   addSectionTitle('SUGESTÕES PARA COMUNICAÇÃO');
@@ -1661,7 +1991,7 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(...SITE_COLORS.primary);
-  const finalText = 'Obrigado por completar o CIS Assessment. Desejamos sucesso em sua jornada de desenvolvimento!';
+  const finalText = 'Obrigado por completar o DISC da Conversão. Desejamos sucesso em sua jornada de desenvolvimento!';
   const finalLines = wrapText(finalText, contentWidth);
   finalLines.forEach((line: string) => {
     doc.text(line, pageWidth / 2, yPos, { align: 'center' });
