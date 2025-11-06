@@ -1,6 +1,8 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.78.0";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+// @deno-types="npm:@types/pdfkit@0.13.5"
+import PDFDocument from "npm:pdfkit@0.15.0";
+import { Buffer } from "node:buffer";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,62 +15,46 @@ serve(async (req) => {
   }
 
   try {
+    const { assessment_id } = await req.json();
+    console.log('Generating PDF for assessment:', assessment_id);
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { assessment_id } = await req.json();
-    console.log('Generating PDF report for assessment:', assessment_id);
-
     // Fetch assessment data
     const { data: assessment, error: assessmentError } = await supabaseClient
       .from('assessments')
-      .select('*, campaigns(name)')
+      .select('*, campaigns(*)')
       .eq('id', assessment_id)
       .single();
 
-    if (assessmentError) {
-      console.error('Error fetching assessment:', assessmentError);
-      throw assessmentError;
-    }
-    
-    if (!assessment) {
+    if (assessmentError || !assessment) {
       throw new Error('Assessment not found');
     }
 
-    // Fetch results separately
+    // Fetch result data
     const { data: result, error: resultError } = await supabaseClient
       .from('results')
       .select('*')
       .eq('assessment_id', assessment_id)
       .single();
 
-    if (resultError) {
-      console.error('Error fetching result:', resultError);
-      throw resultError;
-    }
-    
-    if (!result) {
-      throw new Error('Results not found for this assessment');
+    if (resultError || !result) {
+      throw new Error('Result not found');
     }
 
-    // Validate that we have all required DISC data
-    if (result.natural_d === null || result.natural_d === undefined) {
-      console.error('Missing DISC data in result:', result);
-      throw new Error('Incomplete DISC data - please recalculate results');
-    }
+    console.log('Assessment and result fetched successfully');
 
-    // Generate chart images using AI
-    console.log('Generating chart images...');
+    // Generate chart images using the existing function
     const chartImages: Record<string, string> = {};
     
     try {
-      // Generate DISC comparison chart
+      // DISC Chart
       const discResponse = await supabaseClient.functions.invoke('generate-chart-image', {
         body: {
           chartType: 'disc-bars',
-          title: 'Comparação DISC - Natural vs Adaptado',
           data: {
             natural: {
               D: result.natural_d,
@@ -82,145 +68,111 @@ serve(async (req) => {
               S: result.adapted_s,
               C: result.adapted_c
             }
-          }
+          },
+          title: 'Perfil DISC'
         }
       });
       if (discResponse.data?.imageUrl) {
         chartImages.disc = discResponse.data.imageUrl;
-        console.log('DISC chart generated');
       }
+    } catch (e) {
+      console.error('Error generating DISC chart:', e);
+    }
 
-      // Generate Values radar chart
+    try {
+      // Values Chart
       if (result.values_scores) {
         const valuesResponse = await supabaseClient.functions.invoke('generate-chart-image', {
           body: {
             chartType: 'values-radar',
-            title: 'Perfil de Valores',
-            data: result.values_scores
+            data: result.values_scores,
+            title: 'Valores Motivacionais'
           }
         });
         if (valuesResponse.data?.imageUrl) {
           chartImages.values = valuesResponse.data.imageUrl;
-          console.log('Values chart generated');
         }
       }
+    } catch (e) {
+      console.error('Error generating Values chart:', e);
+    }
 
-      // Generate Leadership pie chart
+    try {
+      // Leadership Chart
       if (result.leadership_style) {
         const leadershipResponse = await supabaseClient.functions.invoke('generate-chart-image', {
           body: {
             chartType: 'leadership-pie',
-            title: 'Distribuição de Estilos de Liderança',
-            data: result.leadership_style
+            data: result.leadership_style,
+            title: 'Estilo de Liderança'
           }
         });
         if (leadershipResponse.data?.imageUrl) {
           chartImages.leadership = leadershipResponse.data.imageUrl;
-          console.log('Leadership chart generated');
         }
       }
+    } catch (e) {
+      console.error('Error generating Leadership chart:', e);
+    }
 
-      // Generate Competencies chart
+    try {
+      // Competencies Chart
       if (result.competencies) {
         const competenciesResponse = await supabaseClient.functions.invoke('generate-chart-image', {
           body: {
             chartType: 'competencies-bars',
-            title: 'Principais Competências',
-            data: result.competencies
+            data: result.competencies,
+            title: 'Mapa de Competências'
           }
         });
         if (competenciesResponse.data?.imageUrl) {
           chartImages.competencies = competenciesResponse.data.imageUrl;
-          console.log('Competencies chart generated');
         }
       }
-
-      console.log('All charts generated successfully:', Object.keys(chartImages));
-    } catch (chartError) {
-      console.error('Error generating charts (continuing without images):', chartError);
+    } catch (e) {
+      console.error('Error generating Competencies chart:', e);
     }
 
-    // Generate PDF using Lovable AI image generation for complete professional PDF
-    console.log('Generating professional PDF report with AI...');
-    
-    const pdfPrompt = generatePDFPrompt(assessment, result, chartImages);
-    
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
+    console.log('Charts generated, creating PDF document with PDFKit...');
 
-    // Call Lovable AI to generate PDF as image (multiple pages)
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: pdfPrompt
-          }
-        ],
-        modalities: ['image', 'text']
-      })
-    });
+    // Generate PDF using PDFKit
+    const pdfBuffer = await generatePDFDocument(assessment, result, chartImages);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI PDF generation failed:', errorText);
-      throw new Error(`AI PDF generation failed: ${errorText}`);
-    }
+    console.log('PDF document generated, uploading to storage...');
 
-    const aiData = await aiResponse.json();
-    const pdfImageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    if (!pdfImageUrl) {
-      throw new Error('No PDF image generated by AI');
-    }
-
-    // Convert base64 to blob
-    const base64Data = pdfImageUrl.split(',')[1];
-    const pdfBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-
+    // Upload to Supabase Storage
     const fileName = `reports/${assessment_id}.pdf`;
-
-    // Upload PDF to Supabase Storage
     const { error: uploadError } = await supabaseClient.storage
       .from('assessment-reports')
-      .upload(fileName, pdfBytes, {
+      .upload(fileName, pdfBuffer, {
         contentType: 'application/pdf',
         upsert: true
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      throw new Error(`Upload error: ${uploadError.message}`);
+    }
 
     // Get public URL
-    const { data: urlData } = supabaseClient.storage
+    const { data: { publicUrl } } = supabaseClient.storage
       .from('assessment-reports')
       .getPublicUrl(fileName);
 
-    const pdfUrl = urlData.publicUrl;
-
     // Update result with PDF URL
-    const { error: updateError } = await supabaseClient
+    await supabaseClient
       .from('results')
-      .update({ report_url: pdfUrl })
+      .update({ report_url: publicUrl })
       .eq('id', result.id);
 
-    if (updateError) throw updateError;
-
-    console.log('PDF report generated successfully:', pdfUrl);
+    console.log('PDF uploaded successfully:', publicUrl);
 
     return new Response(
-      JSON.stringify({ success: true, pdf_url: pdfUrl }),
+      JSON.stringify({ success: true, pdf_url: publicUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    console.error('Error in generate-pdf-report:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),
@@ -229,156 +181,584 @@ serve(async (req) => {
   }
 });
 
-function generatePDFPrompt(assessment: any, result: any, chartImages: Record<string, string>): string {
-  const primaryFactor = result.primary_profile === 'Diretor' ? 'D' :
-    result.primary_profile === 'Comunicador' ? 'I' :
-    result.primary_profile === 'Planejador' ? 'S' : 'C';
+async function generatePDFDocument(
+  assessment: any,
+  result: any,
+  chartImages: Record<string, string>
+): Promise<Uint8Array> {
+  const doc = new PDFDocument({
+    size: 'A4',
+    margins: { top: 56, bottom: 56, left: 42, right: 42 }
+  });
 
-  const profileDescriptions: Record<string, any> = {
-    D: {
-      howDealsWithProblems: 'Encara problemas como desafios a serem superados rapidamente. Age de forma decisiva e direta, buscando soluções imediatas.',
-      developmentPoints: ['Desenvolver paciência', 'Melhorar escuta ativa', 'Ser menos impulsivo', 'Dar atenção aos detalhes'],
-      communicationTips: 'Seja direto e objetivo. Foque em resultados. Evite rodeios.'
-    },
-    I: {
-      howDealsWithProblems: 'Aborda problemas de forma otimista e colaborativa. Busca envolver outras pessoas.',
-      developmentPoints: ['Melhorar organização', 'Focar em detalhes', 'Ser mais objetivo', 'Cumprir prazos'],
-      communicationTips: 'Seja amigável e entusiasta. Reconheça contribuições.'
-    },
-    S: {
-      howDealsWithProblems: 'Analisa problemas com calma e paciência. Busca soluções que mantenham harmonia.',
-      developmentPoints: ['Ser mais assertivo', 'Aceitar mudanças', 'Tomar decisões rápidas', 'Lidar com conflitos'],
-      communicationTips: 'Seja paciente e cordial. Dê tempo para processar informações.'
-    },
-    C: {
-      howDealsWithProblems: 'Analisa problemas com precisão e lógica. Busca a solução mais correta.',
-      developmentPoints: ['Ser menos perfeccionista', 'Tomar decisões rápidas', 'Aceitar imperfeições', 'Ser mais flexível'],
-      communicationTips: 'Seja lógico e preciso. Apresente dados e evidências.'
-    }
+  const chunks: Uint8Array[] = [];
+  doc.on('data', (chunk: Uint8Array) => chunks.push(chunk));
+
+  const primaryColor = '#1e40af';
+  const secondaryColor = '#3b82f6';
+  const textColor = '#1e293b';
+  const lightGray = '#94a3b8';
+
+  // Helper function to add header
+  const addHeader = () => {
+    doc.fontSize(10)
+      .fillColor(lightGray)
+      .text('CIS Assessment - Relatório Confidencial', 42, 30, { align: 'right' });
   };
 
-  const currentProfile = profileDescriptions[primaryFactor];
+  // Helper function to add footer
+  let pageNum = 1;
+  const addFooter = () => {
+    doc.fontSize(9)
+      .fillColor(lightGray)
+      .text(
+        `© 2025 CIS Assessment - Página ${pageNum}`,
+        42,
+        doc.page.height - 40,
+        { align: 'center' }
+      );
+    pageNum++;
+  };
 
-  return `Crie um relatório PDF profissional de mapeamento comportamental em formato A4 (210mm x 297mm), com design corporativo elegante em azul (#1e3a8a, #3b82f6) e branco. O PDF deve ter 12-15 páginas com o seguinte conteúdo:
+  // ==================== PÁGINA 1: CAPA ====================
+  doc.fontSize(32)
+    .fillColor(primaryColor)
+    .text('MAPEAMENTO DE PERFIL', 42, 200, { align: 'center' });
+  
+  doc.fontSize(32)
+    .text('COMPORTAMENTAL', 42, 240, { align: 'center' });
 
-**PÁGINA 1 - CAPA:**
-- Título grande: "MAPEAMENTO DE PERFIL COMPORTAMENTAL"
-- Logo CIS Assessment (texto estilizado em azul)
-- Nome do candidato: "${assessment.candidate_name}"
-- Campanha: "${assessment.campaigns?.name || 'N/A'}"
-- Data: "${new Date(assessment.completed_at || assessment.created_at).toLocaleDateString('pt-BR')}"
-- Design moderno com gradiente azul suave
+  doc.moveDown(3);
+  doc.fontSize(22)
+    .fillColor(textColor)
+    .text(assessment.candidate_name || 'N/A', { align: 'center' });
 
-**PÁGINA 2 - ÍNDICE:**
-1. Relatório Comportamental
-2. Metodologia DISC
-3. Intensidade do Perfil Natural
-4. Intensidade do Perfil Adaptado
-5. Como Lida com Problemas
-6. Pontos a Desenvolver
-7. Tipos Psicológicos de Jung
-8. Teoria de Valores
-9. Estilo de Liderança
-10. Mapa de Competências
-11. Sugestões para Comunicação
+  doc.moveDown(2);
+  doc.fontSize(14)
+    .fillColor(lightGray)
+    .text(`Campanha: ${assessment.campaigns?.name || 'N/A'}`, { align: 'center' });
+  
+  doc.moveDown(0.5);
+  doc.text(
+    `Data: ${new Date(assessment.created_at).toLocaleDateString('pt-BR')}`,
+    { align: 'center' }
+  );
 
-**PÁGINA 3 - RELATÓRIO COMPORTAMENTAL:**
-"O Relatório CIS Assessment® foi desenvolvido para melhor compreender a personalidade e as potenciais competências dos indivíduos. Através de metodologias validadas cientificamente, analisamos seis dimensões fundamentais:
+  addFooter();
 
-• Perfil DISC (Comportamento)
-• Tipos Psicológicos de Jung (Preferências cognitivas)
-• Valores Pessoais (Motivações intrínsecas)
-• Estilo de Liderança (Abordagem gerencial)
-• Competências Comportamentais (Habilidades práticas)
-• Insights para Vendas (Aplicação comercial)
+  // ==================== PÁGINA 2: ÍNDICE ====================
+  doc.addPage();
+  addHeader();
 
-Este relatório fornece uma visão profunda e objetiva do candidato."
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('Conteúdo', 42, 80);
 
-**PÁGINA 4 - METODOLOGIA DISC:**
-"A metodologia DISC foi desenvolvida pelo psicólogo William Moulton Marston em 1928. Marston identificou quatro dimensões principais:
+  doc.moveDown(2);
+  const sections = [
+    '1. Relatório Comportamental',
+    '2. Metodologia DISC',
+    '3. Perfil DISC Natural',
+    '4. Perfil DISC Adaptado',
+    '5. Como Lida com Problemas',
+    '6. Pontos a Desenvolver',
+    '7. Tipos Psicológicos de Jung',
+    '8. Teoria de Valores',
+    '9. Estilo de Liderança',
+    '10. Mapa de Competências',
+    '11. Sugestões para Comunicação',
+  ];
 
-• DOMINÂNCIA (D): Como enfrenta problemas e desafios
-• INFLUÊNCIA (I): Como interage e influencia pessoas
-• ESTABILIDADE (S): Como responde a mudanças
-• CONFORMIDADE (C): Como responde a regras
+  sections.forEach((section, i) => {
+    doc.fontSize(13)
+      .fillColor(textColor)
+      .text(section, 70, 180 + (i * 28));
+  });
 
-Perfil Natural: Comportamento espontâneo e genuíno
-Perfil Adaptado: Comportamento no ambiente de trabalho
-Diferença entre perfis = Nível de tensão"
+  addFooter();
 
-**PÁGINA 5 - INTENSIDADE DO PERFIL NATURAL:**
-${chartImages.disc ? `Incluir gráfico: ${chartImages.disc}` : 'Criar gráfico de barras comparando D=${result.natural_d}, I=${result.natural_i}, S=${result.natural_s}, C=${result.natural_c}'}
+  // ==================== PÁGINA 3: RELATÓRIO COMPORTAMENTAL ====================
+  doc.addPage();
+  addHeader();
 
-Perfil Primário: ${result.primary_profile || 'N/A'}
-Perfil Secundário: ${result.secondary_profile || 'N/A'}
-Nível de Tensão: ${result.tension_level || 'Baixo'}
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('RELATÓRIO COMPORTAMENTAL', 42, 80);
 
-Descrição: "Pessoas com perfil ${primaryFactor} são ${primaryFactor === 'D' ? 'diretas e orientadas a resultados' : primaryFactor === 'I' ? 'comunicativas e entusiastas' : primaryFactor === 'S' ? 'pacientes e leais' : 'analíticas e precisas'}."
+  doc.moveDown(2);
+  doc.fontSize(12)
+    .fillColor(textColor)
+    .text(
+      'O Relatório CIS Assessment® foi desenvolvido para melhor compreender a personalidade e as potenciais competências dos indivíduos. Através da análise científica do comportamento, valores motivacionais e estilos de liderança, oferecemos insights valiosos para desenvolvimento profissional e formação de equipes de alta performance.',
+      { align: 'justify', lineGap: 4 }
+    );
 
-**PÁGINA 6 - INTENSIDADE DO PERFIL ADAPTADO:**
-Gráfico de barras: D=${result.adapted_d}, I=${result.adapted_i}, S=${result.adapted_s}, C=${result.adapted_c}
+  doc.moveDown(2);
+  doc.fontSize(16)
+    .fillColor(primaryColor)
+    .text('Dimensões Avaliadas:', { underline: true });
 
-"O perfil adaptado mostra como você ajusta seu comportamento no trabalho. ${Math.abs(result.natural_d - result.adapted_d) > 5 || Math.abs(result.natural_i - result.adapted_i) > 5 ? 'Há diferenças significativas indicando adaptação comportamental.' : 'O perfil está alinhado com o natural, indicando autenticidade.'}"
+  doc.moveDown(1);
+  const dimensions = [
+    '• Perfil DISC (Natural e Adaptado)',
+    '• Valores Motivacionais',
+    '• Tipos Psicológicos de Jung',
+    '• Estilo de Liderança',
+    '• Mapa de Competências Comportamentais',
+    '• Insights para Comunicação Efetiva'
+  ];
 
-**PÁGINA 7 - COMO LIDA COM PROBLEMAS:**
-${currentProfile.howDealsWithProblems}
+  dimensions.forEach(dim => {
+    doc.fontSize(12)
+      .fillColor(textColor)
+      .text(dim, { lineGap: 3 });
+  });
 
-**PÁGINA 8 - PONTOS A DESENVOLVER:**
-${currentProfile.developmentPoints.map((p: string) => `• ${p}`).join('\n')}
+  addFooter();
 
-**PÁGINA 9 - TIPOS PSICOLÓGICOS DE JUNG:**
-${result.jung_type ? `
-Tipo: ${result.jung_type.type || 'N/A'}
-Extroversão: ${result.jung_type.extroversion || 0}
-Introversão: ${result.jung_type.introversion || 0}
-Intuição: ${result.jung_type.intuition || 0}
-Sensação: ${result.jung_type.sensing || 0}
-Pensamento: ${result.jung_type.thinking || 0}
-Sentimento: ${result.jung_type.feeling || 0}
+  // ==================== PÁGINA 4: METODOLOGIA DISC ====================
+  doc.addPage();
+  addHeader();
 
-Descrição do tipo ${result.jung_type.type}
-` : 'Dados não disponíveis'}
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('METODOLOGIA DISC', 42, 80);
 
-**PÁGINA 10 - TEORIA DE VALORES:**
-${chartImages.values ? `Incluir gráfico radar: ${chartImages.values}` : 'Criar gráfico radar de valores'}
+  doc.moveDown(2);
+  doc.fontSize(12)
+    .fillColor(textColor)
+    .text(
+      'A metodologia DISC foi desenvolvida pelo psicólogo William Moulton Marston na década de 1920. Marston identificou quatro dimensões principais do comportamento humano que formam a base desta avaliação:',
+      { align: 'justify', lineGap: 4 }
+    );
 
-${result.values_scores ? Object.entries(result.values_scores)
-  .map(([key, value]) => `${key}: ${value}`)
-  .join('\n') : 'Dados não disponíveis'}
+  doc.moveDown(2);
+  doc.fontSize(14)
+    .fillColor(secondaryColor)
+    .text('D - Dominância:', { continued: true })
+    .fontSize(12)
+    .fillColor(textColor)
+    .text(' Como você lida com problemas e desafios. Pessoas com alto D são assertivas, diretas e focadas em resultados.');
 
-**PÁGINA 11 - ESTILO DE LIDERANÇA:**
-${chartImages.leadership ? `Incluir gráfico pizza: ${chartImages.leadership}` : 'Criar gráfico de pizza'}
+  doc.moveDown(1);
+  doc.fontSize(14)
+    .fillColor(secondaryColor)
+    .text('I - Influência:', { continued: true })
+    .fontSize(12)
+    .fillColor(textColor)
+    .text(' Como você influencia e interage com outras pessoas. Pessoas com alto I são comunicativas, entusiastas e persuasivas.');
 
-${result.leadership_style ? Object.entries(result.leadership_style)
-  .map(([key, value]) => `${key}: ${value}%`)
-  .join('\n') : 'Dados não disponíveis'}
+  doc.moveDown(1);
+  doc.fontSize(14)
+    .fillColor(secondaryColor)
+    .text('S - Estabilidade:', { continued: true })
+    .fontSize(12)
+    .fillColor(textColor)
+    .text(' Como você responde a mudanças e ritmo. Pessoas com alto S são pacientes, leais e preferem estabilidade.');
 
-**PÁGINA 12 - MAPA DE COMPETÊNCIAS:**
-${chartImages.competencies ? `Incluir gráfico: ${chartImages.competencies}` : 'Criar gráfico de barras horizontais'}
+  doc.moveDown(1);
+  doc.fontSize(14)
+    .fillColor(secondaryColor)
+    .text('C - Conformidade:', { continued: true })
+    .fontSize(12)
+    .fillColor(textColor)
+    .text(' Como você responde a regras e procedimentos. Pessoas com alto C são analíticas, precisas e seguem padrões de qualidade.');
 
-Principais competências avaliadas (Natural vs Adaptado)
+  doc.moveDown(2);
+  doc.fontSize(12)
+    .fillColor(textColor)
+    .text(
+      'Este relatório apresenta dois perfis: Natural (como você realmente é) e Adaptado (como você se comporta no ambiente de trabalho). A diferença entre estes perfis indica o nível de tensão ou adaptação necessária.',
+      { align: 'justify', lineGap: 4 }
+    );
 
-**PÁGINA 13 - SUGESTÕES PARA COMUNICAÇÃO:**
-${currentProfile.communicationTips}
+  addFooter();
 
-O que fazer:
-• Respeitar seu estilo natural
-• Adaptar comunicação às preferências
-• Reconhecer pontos fortes
+  // ==================== PÁGINA 5: PERFIL DISC NATURAL ====================
+  doc.addPage();
+  addHeader();
 
-O que evitar:
-• Ir contra suas preferências naturais
-• Pressionar em áreas de desconforto
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('PERFIL DISC NATURAL', 42, 80);
 
-**FORMATAÇÃO:**
-- Fonte: Arial/Helvetica
-- Cores: Azul #1e3a8a, #3b82f6, Cinza #475569, Preto #1e293b
-- Margens: 20mm (top/bottom), 15mm (left/right)
-- Header: Barra azul 8mm + "CIS Assessment - Relatório Confidencial"
-- Footer: "© 2025 CIS Assessment - Página X de Y"
-- Espaçamento entre linhas: 1.5
-- Seções separadas por linhas azuis
-- Gráficos centralizados e grandes (500px width)
+  doc.moveDown(1);
+  doc.fontSize(12)
+    .fillColor(lightGray)
+    .text('Como você realmente é', { align: 'center' });
 
-Crie um PDF com visual extremamente profissional, similar a relatórios corporativos de consultorias de RH. Use tipografia limpa, espaçamento generoso, e hierarquia visual clara.`;
+  // Add DISC chart if available
+  if (chartImages.disc) {
+    try {
+      const response = await fetch(chartImages.disc);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      doc.image(buffer, 100, 150, { width: 400 });
+    } catch (e) {
+      console.error('Error embedding DISC chart:', e);
+      doc.moveDown(2);
+      doc.fontSize(11).fillColor(lightGray).text('[Gráfico DISC não disponível]', { align: 'center' });
+    }
+  }
+
+  // Add DISC scores
+  doc.moveDown(15);
+  doc.fontSize(14)
+    .fillColor(textColor)
+    .text('Intensidade do Perfil:', { underline: true });
+
+  doc.moveDown(0.5);
+  doc.fontSize(12)
+    .text(`D (Dominância): ${result.natural_d || 0}`)
+    .text(`I (Influência): ${result.natural_i || 0}`)
+    .text(`S (Estabilidade): ${result.natural_s || 0}`)
+    .text(`C (Conformidade): ${result.natural_c || 0}`);
+
+  doc.moveDown(1);
+  doc.fontSize(13)
+    .fillColor(primaryColor)
+    .text(`Perfil Primário: ${result.primary_profile || 'N/A'}`);
+
+  addFooter();
+
+  // ==================== PÁGINA 6: PERFIL DISC ADAPTADO ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('PERFIL DISC ADAPTADO', 42, 80);
+
+  doc.moveDown(1);
+  doc.fontSize(12)
+    .fillColor(lightGray)
+    .text('Como você se comporta no ambiente de trabalho', { align: 'center' });
+
+  doc.moveDown(2);
+  doc.fontSize(14)
+    .fillColor(textColor)
+    .text('Intensidade do Perfil Adaptado:', { underline: true });
+
+  doc.moveDown(0.5);
+  doc.fontSize(12)
+    .text(`D (Dominância): ${result.adapted_d || 0}`)
+    .text(`I (Influência): ${result.adapted_i || 0}`)
+    .text(`S (Estabilidade): ${result.adapted_s || 0}`)
+    .text(`C (Conformidade): ${result.adapted_c || 0}`);
+
+  doc.moveDown(2);
+  doc.fontSize(13)
+    .fillColor(secondaryColor)
+    .text(`Nível de Tensão: ${result.tension_level || 'N/A'}`);
+
+  doc.moveDown(1);
+  doc.fontSize(11)
+    .fillColor(textColor)
+    .text(
+      'O nível de tensão indica o quanto você precisa se adaptar no ambiente de trabalho. Quanto maior a diferença entre o perfil natural e adaptado, maior o nível de energia necessário para manter essa adaptação.',
+      { align: 'justify', lineGap: 3 }
+    );
+
+  addFooter();
+
+  // ==================== PÁGINA 7: COMO LIDA COM PROBLEMAS ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('COMO LIDA COM PROBLEMAS', 42, 80);
+
+  doc.moveDown(2);
+  doc.fontSize(12)
+    .fillColor(textColor)
+    .text(
+      'Baseado no seu perfil DISC, aqui estão as características de como você naturalmente aborda problemas e desafios:',
+      { align: 'justify', lineGap: 4 }
+    );
+
+  doc.moveDown(2);
+  const problemApproach = [
+    'Prefere analisar situações antes de tomar decisões',
+    'Busca consenso e harmonia na resolução de conflitos',
+    'Valoriza processos estruturados e bem definidos',
+    'Mantém a calma em situações de pressão',
+    'Considera o impacto das decisões nas pessoas envolvidas'
+  ];
+
+  problemApproach.forEach(item => {
+    doc.fontSize(12)
+      .fillColor(textColor)
+      .text(`• ${item}`, { lineGap: 3 });
+  });
+
+  addFooter();
+
+  // ==================== PÁGINA 8: PONTOS A DESENVOLVER ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('PONTOS A DESENVOLVER', 42, 80);
+
+  doc.moveDown(2);
+  doc.fontSize(12)
+    .fillColor(textColor)
+    .text(
+      'Áreas de desenvolvimento identificadas para potencializar sua performance:',
+      { align: 'justify', lineGap: 4 }
+    );
+
+  doc.moveDown(2);
+  const developmentPoints = [
+    'Trabalhar a assertividade em situações de conflito',
+    'Desenvolver habilidades de tomada de decisão rápida',
+    'Aumentar a flexibilidade para lidar com mudanças inesperadas',
+    'Melhorar a comunicação direta e objetiva',
+    'Fortalecer a capacidade de delegação'
+  ];
+
+  developmentPoints.forEach(item => {
+    doc.fontSize(12)
+      .fillColor(textColor)
+      .text(`• ${item}`, { lineGap: 3 });
+  });
+
+  addFooter();
+
+  // ==================== PÁGINA 9: TIPOS PSICOLÓGICOS DE JUNG ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('TIPOS PSICOLÓGICOS', 42, 80);
+
+  doc.moveDown(1);
+  doc.fontSize(12)
+    .fillColor(lightGray)
+    .text('Análise baseada na teoria de Carl Jung', { align: 'center' });
+
+  doc.moveDown(2);
+  doc.fontSize(16)
+    .fillColor(secondaryColor)
+    .text(`Tipo: ${result.jung_type?.type || 'N/A'}`);
+
+  doc.moveDown(2);
+  const jungScores = result.jung_type || {};
+  doc.fontSize(14)
+    .fillColor(textColor)
+    .text('Dimensões:', { underline: true });
+
+  doc.moveDown(0.5);
+  doc.fontSize(12)
+    .text(`Extroversão: ${jungScores.extroversion || 0}`)
+    .text(`Introversão: ${jungScores.introversion || 0}`)
+    .text(`Intuição: ${jungScores.intuition || 0}`)
+    .text(`Sensação: ${jungScores.sensing || 0}`)
+    .text(`Pensamento: ${jungScores.thinking || 0}`)
+    .text(`Sentimento: ${jungScores.feeling || 0}`);
+
+  addFooter();
+
+  // ==================== PÁGINA 10: TEORIA DE VALORES ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('VALORES MOTIVACIONAIS', 42, 80);
+
+  // Add Values chart if available
+  if (chartImages.values) {
+    try {
+      const response = await fetch(chartImages.values);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      doc.image(buffer, 100, 130, { width: 400 });
+    } catch (e) {
+      console.error('Error embedding Values chart:', e);
+      doc.moveDown(2);
+      doc.fontSize(11).fillColor(lightGray).text('[Gráfico de Valores não disponível]', { align: 'center' });
+    }
+  }
+
+  doc.moveDown(15);
+  const values = result.values_scores || {};
+  doc.fontSize(14)
+    .fillColor(textColor)
+    .text('Intensidade dos Valores:', { underline: true });
+
+  doc.moveDown(0.5);
+  doc.fontSize(12)
+    .text(`Social: ${values.social || 0}`)
+    .text(`Econômico: ${values.economic || 0}`)
+    .text(`Estético: ${values.aesthetic || 0}`)
+    .text(`Político: ${values.political || 0}`)
+    .text(`Espiritual: ${values.spiritual || 0}`)
+    .text(`Teórico: ${values.theoretical || 0}`);
+
+  addFooter();
+
+  // ==================== PÁGINA 11: ESTILO DE LIDERANÇA ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('ESTILO DE LIDERANÇA', 42, 80);
+
+  // Add Leadership chart if available
+  if (chartImages.leadership) {
+    try {
+      const response = await fetch(chartImages.leadership);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      doc.image(buffer, 100, 130, { width: 400 });
+    } catch (e) {
+      console.error('Error embedding Leadership chart:', e);
+      doc.moveDown(2);
+      doc.fontSize(11).fillColor(lightGray).text('[Gráfico de Liderança não disponível]', { align: 'center' });
+    }
+  }
+
+  doc.moveDown(15);
+  const leadership = result.leadership_style || {};
+  doc.fontSize(14)
+    .fillColor(textColor)
+    .text('Distribuição dos Estilos:', { underline: true });
+
+  doc.moveDown(0.5);
+  doc.fontSize(12)
+    .text(`Executivo: ${leadership.executive || 0}%`)
+    .text(`Motivador: ${leadership.motivator || 0}%`)
+    .text(`Metódico: ${leadership.methodical || 0}%`)
+    .text(`Sistemático: ${leadership.systematic || 0}%`);
+
+  addFooter();
+
+  // ==================== PÁGINA 12: MAPA DE COMPETÊNCIAS ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('MAPA DE COMPETÊNCIAS', 42, 80);
+
+  doc.moveDown(1);
+  doc.fontSize(12)
+    .fillColor(lightGray)
+    .text('Avaliação das competências comportamentais', { align: 'center' });
+
+  // Add Competencies chart if available
+  if (chartImages.competencies) {
+    try {
+      const response = await fetch(chartImages.competencies);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      doc.image(buffer, 100, 150, { width: 400 });
+    } catch (e) {
+      console.error('Error embedding Competencies chart:', e);
+      doc.moveDown(2);
+      doc.fontSize(11).fillColor(lightGray).text('[Gráfico de Competências não disponível]', { align: 'center' });
+    }
+  }
+
+  addFooter();
+
+  // ==================== PÁGINA 13: SUGESTÕES PARA COMUNICAÇÃO ====================
+  doc.addPage();
+  addHeader();
+
+  doc.fontSize(24)
+    .fillColor(primaryColor)
+    .text('SUGESTÕES PARA COMUNICAÇÃO', 42, 80);
+
+  doc.moveDown(2);
+  doc.fontSize(14)
+    .fillColor(secondaryColor)
+    .text('O QUE FAZER:', { underline: true });
+
+  doc.moveDown(0.5);
+  const doList = [
+    'Seja claro e direto na comunicação',
+    'Apresente dados e informações concretas',
+    'Respeite o tempo de reflexão antes das decisões',
+    'Mantenha um ambiente organizado e estruturado',
+    'Valorize o trabalho bem feito e a atenção aos detalhes'
+  ];
+
+  doList.forEach(item => {
+    doc.fontSize(11)
+      .fillColor(textColor)
+      .text(`✓ ${item}`, { lineGap: 3 });
+  });
+
+  doc.moveDown(2);
+  doc.fontSize(14)
+    .fillColor(secondaryColor)
+    .text('O QUE EVITAR:', { underline: true });
+
+  doc.moveDown(0.5);
+  const dontList = [
+    'Evite mudanças bruscas sem aviso prévio',
+    'Não pressione por decisões imediatas',
+    'Evite ambientes caóticos e desorganizados',
+    'Não desconsidere a importância dos processos',
+    'Evite críticas públicas ou confrontos diretos'
+  ];
+
+  dontList.forEach(item => {
+    doc.fontSize(11)
+      .fillColor(textColor)
+      .text(`✗ ${item}`, { lineGap: 3 });
+  });
+
+  addFooter();
+
+  // ==================== PÁGINA FINAL: INSIGHTS PARA VENDAS ====================
+  if (result.sales_insights) {
+    doc.addPage();
+    addHeader();
+
+    doc.fontSize(24)
+      .fillColor(primaryColor)
+      .text('INSIGHTS PARA VENDAS', 42, 80);
+
+    doc.moveDown(2);
+    doc.fontSize(14)
+      .fillColor(secondaryColor)
+      .text('Pontos Fortes:', { underline: true });
+
+    doc.moveDown(0.5);
+    const strengths = result.sales_insights.strengths || [];
+    strengths.forEach((strength: string) => {
+      doc.fontSize(12)
+        .fillColor(textColor)
+        .text(`• ${strength}`, { lineGap: 3 });
+    });
+
+    doc.moveDown(2);
+    doc.fontSize(14)
+      .fillColor(secondaryColor)
+      .text('Abordagem Recomendada:', { underline: true });
+
+    doc.moveDown(0.5);
+    doc.fontSize(12)
+      .fillColor(textColor)
+      .text(result.sales_insights.approach || 'N/A', { align: 'justify', lineGap: 4 });
+
+    addFooter();
+  }
+
+  // Finalize PDF
+  doc.end();
+
+  return new Promise<Uint8Array>((resolve) => {
+    doc.on('end', () => {
+      const buffer = Buffer.concat(chunks);
+      resolve(new Uint8Array(buffer));
+    });
+  });
 }
