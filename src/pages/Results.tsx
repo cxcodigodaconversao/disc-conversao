@@ -3,13 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Download, ArrowLeft } from "lucide-react";
+import { Brain, Download, ArrowLeft, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
 
 export default function Results() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [assessment, setAssessment] = useState<any>(null);
 
@@ -63,6 +64,27 @@ export default function Results() {
       } catch (error) {
         console.error('Error generating PDF:', error);
       }
+    }
+  };
+
+  const handleRegeneratePDF = async () => {
+    setRegenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'regenerate-pdf',
+        { body: { assessment_id: id } }
+      );
+
+      if (error) throw error;
+      
+      if (data.pdf_url) {
+        setResult({ ...result, report_url: data.pdf_url });
+        window.open(data.pdf_url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error regenerating PDF:', error);
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -130,10 +152,21 @@ export default function Results() {
             <ArrowLeft className="w-4 h-4" />
             Voltar ao Dashboard
           </Button>
-          <Button onClick={handleDownloadPDF} className="gap-2">
-            <Download className="w-4 h-4" />
-            Download PDF
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleRegeneratePDF} 
+              variant="outline" 
+              className="gap-2"
+              disabled={regenerating}
+            >
+              <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+              {regenerating ? 'Regenerando...' : 'Regenerar PDF'}
+            </Button>
+            <Button onClick={handleDownloadPDF} className="gap-2">
+              <Download className="w-4 h-4" />
+              Download PDF
+            </Button>
+          </div>
         </div>
 
         {/* Title */}
