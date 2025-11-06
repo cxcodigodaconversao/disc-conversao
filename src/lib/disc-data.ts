@@ -1055,7 +1055,7 @@ export const COMBINED_PROFILES: Record<string, {
 };
 
 export const METHODOLOGY_TEXT = `
-O CIS Assessment® utiliza a metodologia DISC, desenvolvida pelo psicólogo William Moulton Marston em 1928. 
+O DISC da Conversão utiliza a metodologia DISC, desenvolvida pelo psicólogo William Moulton Marston em 1928.
 Marston identificou quatro dimensões principais do comportamento humano:
 
 • DOMINÂNCIA (D): Como a pessoa enfrenta problemas e desafios
