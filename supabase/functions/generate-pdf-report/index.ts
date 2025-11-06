@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { jsPDF } from "npm:jspdf@2.5.1";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -193,16 +194,145 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   const addImageFromUrl = async (url: string, x: number, y: number, width: number, height: number) => {
     try {
       const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
       const arrayBuffer = await response.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Validate image size (max 5MB)
+      if (uint8Array.byteLength === 0) {
+        throw new Error('Empty image data');
+      }
+      if (uint8Array.byteLength > 5 * 1024 * 1024) {
+        throw new Error('Image too large');
+      }
+      
+      // Use Deno's native base64 encoding
+      const base64 = base64Encode(uint8Array);
       const imgData = `data:image/png;base64,${base64}`;
+      
       doc.addImage(imgData, 'PNG', x, y, width, height);
+      console.log(`Image added successfully: ${uint8Array.byteLength} bytes`);
     } catch (e) {
       console.error('Error adding image:', e);
+      // Fallback: Draw gray box with text
+      doc.setFillColor(241, 245, 249);
+      doc.rect(x, y, width, height, 'F');
+      doc.setDrawColor(203, 213, 225);
+      doc.rect(x, y, width, height);
       doc.setFontSize(10);
       doc.setTextColor(150, 150, 150);
-      doc.text('[Gráfico não disponível]', x, y);
+      doc.text('Gráfico indisponível', x + width/2, y + height/2, { align: 'center' });
     }
+  };
+
+  const createTable = (data: Array<{label: string, value: string, color?: number[]}>, startY: number, colWidths = [100, 60]) => {
+    const rowHeight = 10;
+    const [col1Width, col2Width] = colWidths;
+    
+    data.forEach((row, index) => {
+      checkPageBreak(rowHeight + 2);
+      
+      // Alternating background
+      if (index % 2 === 0) {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(margin, yPos, col1Width + col2Width, rowHeight, 'F');
+      }
+      
+      // Border
+      doc.setDrawColor(229, 231, 235);
+      doc.setLineWidth(0.2);
+      doc.rect(margin, yPos, col1Width + col2Width, rowHeight);
+      
+      // Color indicator if provided
+      if (row.color) {
+        doc.setFillColor(row.color[0], row.color[1], row.color[2]);
+        doc.rect(margin, yPos, 3, rowHeight, 'F');
+      }
+      
+      // Text
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(55, 65, 81);
+      doc.text(row.label, margin + (row.color ? 6 : 3), yPos + 6.5);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(17, 24, 39);
+      doc.text(row.value, margin + col1Width + 5, yPos + 6.5);
+      
+      yPos += rowHeight;
+    });
+    
+    return yPos;
+  };
+
+  const createColorBox = (title: string, content: string[], color: number[], icon = '') => {
+    const boxPadding = 8;
+    const lineHeight = 6;
+    const estimatedHeight = 15 + (content.length * lineHeight) + boxPadding;
+    
+    checkPageBreak(estimatedHeight);
+    
+    const startY = yPos;
+    
+    // Light background
+    doc.setFillColor(color[0], color[1], color[2], 0.05);
+    doc.roundedRect(margin, yPos, contentWidth, estimatedHeight, 2, 2, 'F');
+    
+    // Left border
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.rect(margin, yPos, 4, estimatedHeight, 'F');
+    
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(color[0], color[1], color[2]);
+    const titleText = icon ? `${icon} ${title}` : title;
+    doc.text(titleText, margin + boxPadding, yPos + boxPadding);
+    
+    // Content
+    yPos += boxPadding + 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    
+    content.forEach(line => {
+      const lines = wrapText(line, contentWidth - (2 * boxPadding));
+      lines.forEach((l: string) => {
+        doc.text(l, margin + boxPadding, yPos);
+        yPos += lineHeight;
+      });
+    });
+    
+    yPos = startY + estimatedHeight + 8;
+  };
+
+  const addSectionTitle = (title: string, color = [30, 64, 175]) => {
+    checkPageBreak(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(color[0], color[1], color[2]);
+    doc.text(title, margin, yPos);
+    
+    // Decorative line
+    doc.setDrawColor(59, 130, 246);
+    doc.setLineWidth(0.8);
+    doc.line(margin, yPos + 3, margin + 70, yPos + 3);
+    
+    yPos += 15;
+  };
+
+  const addSubtitle = (subtitle: string, color = [71, 85, 105]) => {
+    checkPageBreak(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(color[0], color[1], color[2]);
+    doc.text(subtitle, margin, yPos);
+    yPos += 10;
+  };
+
+  const safeGetValue = (obj: any, key: string, defaultValue: any) => {
+    return obj && obj[key] !== undefined ? obj[key] : defaultValue;
   };
 
   // ========== PÁGINA 1: CAPA ==========
@@ -354,37 +484,28 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
 
   // ========== PÁGINA 5: PERFIL NATURAL ==========
   addPage();
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(30, 64, 175);
-  doc.text('INTENSIDADE DO PERFIL NATURAL', margin, yPos);
-  yPos += 8;
+  addSectionTitle('INTENSIDADE DO PERFIL NATURAL');
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(107, 114, 128);
   doc.text('(Como você realmente é)', margin, yPos);
-  yPos += 12;
+  yPos += 15;
 
-  // Scores
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  const naturalScores = [
-    { factor: 'D (Dominância):', value: result.natural_d },
-    { factor: 'I (Influência):', value: result.natural_i },
-    { factor: 'S (Estabilidade):', value: result.natural_s },
-    { factor: 'C (Conformidade):', value: result.natural_c }
+  // Scores Table
+  const naturalD = safeGetValue(result, 'natural_d', 0);
+  const naturalI = safeGetValue(result, 'natural_i', 0);
+  const naturalS = safeGetValue(result, 'natural_s', 0);
+  const naturalC = safeGetValue(result, 'natural_c', 0);
+
+  const naturalScoresData = [
+    { label: 'D (Dominância)', value: `${naturalD}/100`, color: [239, 68, 68] },
+    { label: 'I (Influência)', value: `${naturalI}/100`, color: [245, 158, 11] },
+    { label: 'S (Estabilidade)', value: `${naturalS}/100`, color: [16, 185, 129] },
+    { label: 'C (Conformidade)', value: `${naturalC}/100`, color: [59, 130, 246] }
   ];
 
-  naturalScores.forEach(score => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(score.factor, margin + 5, yPos);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${score.value}`, margin + 60, yPos);
-    yPos += 8;
-  });
-
+  createTable(naturalScoresData, yPos);
   yPos += 5;
   if (result.primary_profile) {
     doc.setFont('helvetica', 'bold');
@@ -425,45 +546,58 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
 
   // ========== PÁGINA 6: PERFIL ADAPTADO ==========
   addPage();
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(30, 64, 175);
-  doc.text('INTENSIDADE DO PERFIL ADAPTADO', margin, yPos);
-  yPos += 8;
+  addSectionTitle('INTENSIDADE DO PERFIL ADAPTADO');
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(107, 114, 128);
   doc.text('(Como você se comporta no trabalho)', margin, yPos);
-  yPos += 12;
+  yPos += 15;
 
-  // Adapted scores
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(0, 0, 0);
-  const adaptedScores = [
-    { factor: 'D (Dominância):', value: result.adapted_d },
-    { factor: 'I (Influência):', value: result.adapted_i },
-    { factor: 'S (Estabilidade):', value: result.adapted_s },
-    { factor: 'C (Conformidade):', value: result.adapted_c }
+  // Adapted scores Table
+  const adaptedD = safeGetValue(result, 'adapted_d', 0);
+  const adaptedI = safeGetValue(result, 'adapted_i', 0);
+  const adaptedS = safeGetValue(result, 'adapted_s', 0);
+  const adaptedC = safeGetValue(result, 'adapted_c', 0);
+
+  const adaptedScoresData = [
+    { label: 'D (Dominância)', value: `${adaptedD}/100`, color: [239, 68, 68] },
+    { label: 'I (Influência)', value: `${adaptedI}/100`, color: [245, 158, 11] },
+    { label: 'S (Estabilidade)', value: `${adaptedS}/100`, color: [16, 185, 129] },
+    { label: 'C (Conformidade)', value: `${adaptedC}/100`, color: [59, 130, 246] }
   ];
 
-  adaptedScores.forEach(score => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(score.factor, margin + 5, yPos);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${score.value}`, margin + 60, yPos);
-    yPos += 8;
-  });
+  createTable(adaptedScoresData, yPos);
+  yPos += 10;
 
-  yPos += 8;
+  // Tension Level Box
   if (result.tension_level) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor(59, 130, 246);
-    const tensionText = result.tension_level === 'low' ? 'Baixo' : result.tension_level === 'medium' ? 'Médio' : 'Alto';
-    doc.text(`Nível de Tensão: ${tensionText}`, margin, yPos);
-    yPos += 10;
+    const tensionMap: Record<string, string> = {
+      'low': 'Baixo',
+      'medium': 'Médio',
+      'high': 'Alto'
+    };
+    const tensionText = tensionMap[result.tension_level] || 'Não calculado';
+    const tensionColors: Record<string, number[]> = {
+      'low': [16, 185, 129],
+      'medium': [245, 158, 11],
+      'high': [239, 68, 68]
+    };
+    const tensionColor = tensionColors[result.tension_level] || [107, 114, 128];
+    
+    const tensionExplanations: Record<string, string> = {
+      'low': 'Você está confortável sendo quem realmente é no ambiente de trabalho. Há pouca diferença entre seu comportamento natural e adaptado.',
+      'medium': 'Você está fazendo alguns ajustes no seu comportamento natural para se adaptar ao ambiente de trabalho. Um nível moderado de adaptação é normal.',
+      'high': 'Você está fazendo ajustes significativos no seu comportamento, o que pode gerar estresse e cansaço ao longo do tempo. Considere avaliar se o ambiente está alinhado com suas características naturais.'
+    };
+    
+    createColorBox(
+      `Nível de Tensão: ${tensionText}`,
+      [tensionExplanations[result.tension_level] || 'Nível de tensão não calculado.'],
+      tensionColor,
+      result.tension_level === 'high' ? '⚠️' : result.tension_level === 'medium' ? '⚡' : '✓'
+    );
+    yPos += 5;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
@@ -482,11 +616,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
 
   // ========== PÁGINA 7: COMO LIDA COM PROBLEMAS ==========
   addPage();
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(30, 64, 175);
-  doc.text('COMO LIDA COM PROBLEMAS E DESAFIOS', margin, yPos);
-  yPos += 12;
+  addSectionTitle('COMO LIDA COM PROBLEMAS E DESAFIOS');
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
@@ -508,11 +638,7 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
 
   // ========== PÁGINA 8: PONTOS A DESENVOLVER ==========
   addPage();
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(30, 64, 175);
-  doc.text('PONTOS A DESENVOLVER', margin, yPos);
-  yPos += 12;
+  addSectionTitle('PONTOS A DESENVOLVER', [245, 158, 11]);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
@@ -584,151 +710,192 @@ async function generatePDFDocument(assessment: any, result: any, chartImages: Re
   // ========== PÁGINA 10: TEORIA DE VALORES ==========
   if (result.values_scores) {
     addPage();
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.setTextColor(30, 64, 175);
-    doc.text('TEORIA DE VALORES', margin, yPos);
-    yPos += 12;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
+    addSectionTitle('TEORIA DE VALORES', [139, 92, 246]);
 
     const valueNames: Record<string, string> = {
-      social: 'Social',
-      economic: 'Econômico',
-      aesthetic: 'Estético',
-      political: 'Político',
-      spiritual: 'Espiritual',
-      theoretical: 'Teórico'
+      social: 'Social - Ajudar e servir outros',
+      economic: 'Econômico - Retorno prático e financeiro',
+      aesthetic: 'Estético - Equilíbrio e harmonia',
+      political: 'Político - Poder e influência',
+      spiritual: 'Espiritual - Unidade e propósito maior',
+      theoretical: 'Teórico - Conhecimento e verdade'
     };
 
-    Object.entries(result.values_scores).forEach(([key, value]) => {
-      checkPageBreak(8);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${valueNames[key] || key}:`, margin + 5, yPos);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${value}`, margin + 60, yPos);
-      yPos += 8;
-    });
+    const valuesData = Object.entries(result.values_scores).map(([key, value]) => ({
+      label: valueNames[key] || key,
+      value: `${value}/60`
+    }));
 
-    yPos += 10;
+    createTable(valuesData, yPos, [120, 40]);
+    yPos += 15;
+
     if (chartImages.values) {
-      checkPageBreak(75);
-      await addImageFromUrl(chartImages.values, margin, yPos, contentWidth, 70);
-      yPos += 75;
+      checkPageBreak(80);
+      await addImageFromUrl(chartImages.values, margin, yPos, contentWidth, 75);
+      yPos += 80;
     }
   }
 
   // ========== PÁGINA 11: ESTILO DE LIDERANÇA ==========
   if (result.leadership_style) {
     addPage();
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.setTextColor(30, 64, 175);
-    doc.text('ESTILO DE LIDERANÇA', margin, yPos);
-    yPos += 12;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
+    addSectionTitle('ESTILO DE LIDERANÇA', [16, 185, 129]);
 
     const leadershipNames: Record<string, string> = {
-      executive: 'Executivo',
-      motivator: 'Motivador',
-      methodical: 'Metódico',
-      systematic: 'Sistemático'
+      executive: 'Executivo - Focado em resultados',
+      motivator: 'Motivador - Inspirador e energético',
+      methodical: 'Metódico - Analítico e preciso',
+      systematic: 'Sistemático - Organizado e estável'
     };
 
-    Object.entries(result.leadership_style).forEach(([key, value]) => {
-      checkPageBreak(8);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${leadershipNames[key] || key}:`, margin + 5, yPos);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`${value}%`, margin + 60, yPos);
-      yPos += 8;
-    });
+    const leadershipData = Object.entries(result.leadership_style).map(([key, value]) => ({
+      label: leadershipNames[key] || key,
+      value: `${value}%`
+    }));
 
-    yPos += 10;
+    createTable(leadershipData, yPos, [120, 40]);
+    yPos += 15;
+
     if (chartImages.leadership) {
-      checkPageBreak(75);
-      await addImageFromUrl(chartImages.leadership, margin, yPos, contentWidth, 70);
-      yPos += 75;
+      checkPageBreak(80);
+      await addImageFromUrl(chartImages.leadership, margin, yPos, contentWidth, 75);
+      yPos += 80;
     }
   }
 
   // ========== PÁGINA 12: MAPA DE COMPETÊNCIAS ==========
   if (result.competencies && chartImages.competencies) {
     addPage();
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.setTextColor(30, 64, 175);
-    doc.text('MAPA DE COMPETÊNCIAS', margin, yPos);
-    yPos += 12;
+    addSectionTitle('MAPA DE COMPETÊNCIAS', [236, 72, 153]);
 
-    await addImageFromUrl(chartImages.competencies, margin, yPos, contentWidth, 100);
-    yPos += 110;
+    await addImageFromUrl(chartImages.competencies, margin, yPos, contentWidth, 110);
+    yPos += 115;
   }
 
   // ========== PÁGINA 13: SUGESTÕES DE COMUNICAÇÃO ==========
   addPage();
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(30, 64, 175);
-  doc.text('SUGESTÕES PARA COMUNICAÇÃO', margin, yPos);
-  yPos += 12;
+  addSectionTitle('SUGESTÕES PARA COMUNICAÇÃO', [99, 102, 241]);
 
   const commTips = getProfileCommunicationTips(result.primary_profile);
   if (commTips) {
     if (commTips.do && commTips.do.length > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(16, 185, 129);
-      doc.text('O que fazer:', margin, yPos);
-      yPos += 10;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(0, 0, 0);
-
-      commTips.do.forEach((tip: string) => {
-        checkPageBreak(15);
-        doc.text('✓', margin + 2, yPos);
-        const tipLines = wrapText(tip, contentWidth - 10);
-        tipLines.forEach((line: string, idx: number) => {
-          doc.text(line, margin + 8, yPos);
-          if (idx < tipLines.length - 1) yPos += 6;
-        });
-        yPos += 10;
-      });
-
+      createColorBox('✓ O que fazer', commTips.do, [16, 185, 129]);
       yPos += 5;
     }
 
     if (commTips.dont && commTips.dont.length > 0) {
-      checkPageBreak(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(245, 158, 11);
-      doc.text('O que evitar:', margin, yPos);
-      yPos += 10;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(11);
-      doc.setTextColor(0, 0, 0);
-
-      commTips.dont.forEach((tip: string) => {
-        checkPageBreak(15);
-        doc.text('✗', margin + 2, yPos);
-        const tipLines = wrapText(tip, contentWidth - 10);
-        tipLines.forEach((line: string, idx: number) => {
-          doc.text(line, margin + 8, yPos);
-          if (idx < tipLines.length - 1) yPos += 6;
-        });
-        yPos += 10;
-      });
+      createColorBox('✗ O que evitar', commTips.dont, [239, 68, 68]);
     }
   }
+
+  // ========== PÁGINA 14: GRÁFICOS CONSOLIDADOS ==========
+  if (chartImages.disc || chartImages.values || chartImages.leadership || chartImages.competencies) {
+    addPage();
+    addSectionTitle('VISÃO GERAL - TODOS OS GRÁFICOS', [107, 114, 128]);
+    
+    const chartWidth = (contentWidth - 10) / 2;
+    const chartHeight = 65;
+    let chartsInRow = 0;
+    let rowY = yPos;
+
+    // DISC chart
+    if (chartImages.disc) {
+      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(59, 130, 246);
+      doc.text('Perfil DISC', xPos, rowY - 3);
+      await addImageFromUrl(chartImages.disc, xPos, rowY, chartWidth, chartHeight);
+      chartsInRow++;
+      if (chartsInRow === 2) {
+        chartsInRow = 0;
+        rowY += chartHeight + 15;
+        checkPageBreak(chartHeight + 20);
+      }
+    }
+
+    // Values chart
+    if (chartImages.values) {
+      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(139, 92, 246);
+      doc.text('Valores Motivacionais', xPos, rowY - 3);
+      await addImageFromUrl(chartImages.values, xPos, rowY, chartWidth, chartHeight);
+      chartsInRow++;
+      if (chartsInRow === 2) {
+        chartsInRow = 0;
+        rowY += chartHeight + 15;
+        checkPageBreak(chartHeight + 20);
+      }
+    }
+
+    // Leadership chart
+    if (chartImages.leadership) {
+      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(16, 185, 129);
+      doc.text('Estilo de Liderança', xPos, rowY - 3);
+      await addImageFromUrl(chartImages.leadership, xPos, rowY, chartWidth, chartHeight);
+      chartsInRow++;
+      if (chartsInRow === 2) {
+        chartsInRow = 0;
+        rowY += chartHeight + 15;
+        checkPageBreak(chartHeight + 20);
+      }
+    }
+
+    // Competencies chart
+    if (chartImages.competencies) {
+      const xPos = chartsInRow === 0 ? margin : margin + chartWidth + 10;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(236, 72, 153);
+      doc.text('Mapa de Competências', xPos, rowY - 3);
+      await addImageFromUrl(chartImages.competencies, xPos, rowY, chartWidth, chartHeight);
+    }
+  }
+
+  // ========== PÁGINA 15: PLANO DE AÇÃO ==========
+  addPage();
+  addSectionTitle('PLANO DE AÇÃO PERSONALIZADO', [16, 185, 129]);
+
+  const actionPlan = getActionPlan(result.primary_profile, result.tension_level);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(71, 85, 105);
+  const introText = 'Com base no seu perfil e nível de tensão, recomendamos as seguintes ações para seu desenvolvimento:';
+  const introLines = wrapText(introText, contentWidth);
+  introLines.forEach((line: string) => {
+    doc.text(line, margin, yPos);
+    yPos += 6;
+  });
+  yPos += 10;
+
+  actionPlan.forEach((action, index) => {
+    checkPageBreak(25);
+    
+    // Number circle
+    doc.setFillColor(59, 130, 246);
+    doc.circle(margin + 4, yPos - 2, 4, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`${index + 1}`, margin + 4, yPos + 1, { align: 'center' });
+    
+    // Action text
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(31, 41, 55);
+    const actionLines = wrapText(action, contentWidth - 15);
+    actionLines.forEach((line: string, idx: number) => {
+      doc.text(line, margin + 12, yPos);
+      if (idx < actionLines.length - 1) yPos += 6;
+    });
+    yPos += 12;
+  });
 
   // Finalize and return PDF
   const pdfArrayBuffer = doc.output('arraybuffer');
@@ -910,4 +1077,118 @@ function getJungianDescription(type: string): string {
     'ESTJ': 'O Executivo - Organizados, práticos e decisivos. Focam em resultados e eficiência.'
   };
   return descriptions[type] || `Tipo ${type} - Combinação única de características de personalidade.`;
+}
+
+function getActionPlan(profileName: string | null, tensionLevel: string): string[] {
+  const plans: Record<string, Record<string, string[]>> = {
+    'Executor': {
+      'low': [
+        'Continue aproveitando sua capacidade natural de liderança e tomada de decisão rápida',
+        'Desenvolva ainda mais suas habilidades de comunicação para inspirar equipes',
+        'Pratique delegar tarefas para desenvolver sua equipe',
+        'Reserve tempo para ouvir feedback antes de agir',
+        'Participe de projetos que desafiem sua zona de conforto'
+      ],
+      'medium': [
+        'Identifique situações onde está se adaptando demais e avalie se é necessário',
+        'Pratique técnicas de relaxamento para gerenciar estresse',
+        'Comunique suas necessidades com assertividade',
+        'Reserve tempo para atividades que permitam expressar sua natureza dominante',
+        'Busque mentoria para equilibrar adaptação e autenticidade'
+      ],
+      'high': [
+        'URGENTE: Avalie se o ambiente atual está alinhado com suas características',
+        'Pratique técnicas diárias de gerenciamento de estresse',
+        'Considere conversar com liderança sobre ajustes no papel',
+        'Reserve tempo diário para atividades que permitam ser você mesmo',
+        'Busque apoio profissional (coach/terapeuta) para gerenciar tensão',
+        'Explore oportunidades que permitam maior alinhamento com seu perfil natural'
+      ]
+    },
+    'Comunicador': {
+      'low': [
+        'Continue usando sua energia social para motivar equipes',
+        'Desenvolva habilidades de organização e gestão de tempo',
+        'Pratique foco em uma tarefa por vez',
+        'Reserve tempo para planejamento antes de agir',
+        'Desenvolva habilidades técnicas complementares'
+      ],
+      'medium': [
+        'Identifique ambientes onde pode expressar mais sua sociabilidade',
+        'Pratique técnicas de foco para tarefas individuais',
+        'Comunique sua necessidade de interação social',
+        'Reserve tempo para networking e conexões',
+        'Busque equilibrar trabalho individual com colaborativo'
+      ],
+      'high': [
+        'URGENTE: Busque mais oportunidades de interação social no trabalho',
+        'Evite isolamento prolongado - programe pausas sociais',
+        'Converse com gestão sobre projetos mais colaborativos',
+        'Pratique auto-cuidado e atividades energizantes',
+        'Considere ambientes de trabalho mais alinhados com seu perfil',
+        'Busque apoio para gerenciar estresse de adaptação'
+      ]
+    },
+    'Planejador': {
+      'low': [
+        'Continue sendo o pilar de estabilidade da equipe',
+        'Pratique adaptação gradual a pequenas mudanças',
+        'Desenvolva habilidades de tomada de decisão mais rápida',
+        'Aprenda a dizer não quando necessário',
+        'Participe de projetos que o tirem da zona de conforto'
+      ],
+      'medium': [
+        'Identifique fontes de pressão e mudança excessiva',
+        'Comunique sua necessidade de tempo para processar mudanças',
+        'Pratique técnicas de adaptação a mudanças',
+        'Reserve tempo para rotinas que trazem conforto',
+        'Busque ambientes mais estáveis quando possível'
+      ],
+      'high': [
+        'URGENTE: Ambiente pode estar muito volátil para seu perfil',
+        'Pratique técnicas de gerenciamento de ansiedade',
+        'Converse com gestão sobre ritmo de mudanças',
+        'Crie rotinas pessoais para manter estabilidade',
+        'Considere ambientes com mais previsibilidade',
+        'Busque apoio profissional para gerenciar estresse'
+      ]
+    },
+    'Analista': {
+      'low': [
+        'Continue sendo referência em qualidade e precisão',
+        'Pratique aceitar "bom o suficiente" em situações apropriadas',
+        'Desenvolva habilidades de decisão com informação incompleta',
+        'Melhore comunicação de insights técnicos para não-técnicos',
+        'Participe de situações que exijam flexibilidade'
+      ],
+      'medium': [
+        'Identifique situações onde precisão é menos crítica',
+        'Pratique tomada de decisão mais rápida',
+        'Comunique necessidade de tempo para análise quando crítico',
+        'Reserve tempo para trabalho detalhado',
+        'Busque equilibrar qualidade com eficiência'
+      ],
+      'high': [
+        'URGENTE: Ambiente pode estar exigindo velocidade demais',
+        'Pratique aceitar imperfeição em situações não-críticas',
+        'Converse com gestão sobre expectativas de qualidade vs velocidade',
+        'Reserve tempo para trabalho profundo e focado',
+        'Considere ambientes que valorizem mais qualidade',
+        'Busque apoio para gerenciar perfeccionismo excessivo'
+      ]
+    }
+  };
+
+  const profilePlan = plans[profileName || ''];
+  if (!profilePlan) {
+    return [
+      'Identifique seus pontos fortes e como usá-los mais',
+      'Desenvolva áreas de melhoria gradualmente',
+      'Busque feedback regular de colegas e gestores',
+      'Invista em aprendizado contínuo',
+      'Mantenha equilíbrio entre vida pessoal e profissional'
+    ];
+  }
+
+  return profilePlan[tensionLevel] || profilePlan['medium'];
 }
