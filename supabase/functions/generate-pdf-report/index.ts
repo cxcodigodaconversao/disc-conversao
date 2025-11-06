@@ -428,18 +428,268 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     return doc.splitTextToSize(text, maxWidth);
   };
 
-  const addSVGImage = (svgContent: string, x: number, y: number, width: number, height: number) => {
-    try {
-      const base64 = btoa(unescape(encodeURIComponent(svgContent)));
-      const dataUrl = `data:image/svg+xml;base64,${base64}`;
-      doc.addImage(dataUrl, 'SVG', x, y, width, height);
-    } catch (e) {
-      console.error('Error adding SVG:', e);
-      doc.setFillColor(241, 245, 249);
-      doc.rect(x, y, width, height, 'F');
-      doc.setTextColor(150, 150, 150);
-      doc.text('Gráfico indisponível', x + width/2, y + height/2, { align: 'center' });
+  // Drawing functions for charts
+  const drawDISCChart = (
+    naturalArr: number[],
+    adaptedArr: number[],
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => {
+    const barWidth = 15;
+    const spacing = 20;
+    const maxValue = 40;
+    const chartHeight = height - 40;
+    const factors = ['D', 'I', 'S', 'C'];
+    const labels = ['Dominância', 'Influência', 'Estabilidade', 'Conformidade'];
+    const colors: Record<string, [number, number, number]> = {
+      D: [217, 83, 79],
+      I: [240, 173, 78],
+      S: [92, 184, 92],
+      C: [91, 192, 222]
+    };
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...SITE_COLORS.primary);
+    doc.text('Perfil DISC', x + width / 2, y + 5, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setTextColor(...SITE_COLORS.textMedium);
+    doc.text('Natural', x + width / 4, y + 12, { align: 'center' });
+    doc.text('Adaptado', x + (3 * width) / 4, y + 12, { align: 'center' });
+
+    const baseY = y + height - 15;
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(x + 5, baseY, x + width - 5, baseY);
+
+    naturalArr.forEach((value, i) => {
+      const barX = x + 12 + i * spacing;
+      const barHeight = (value / maxValue) * chartHeight;
+      const barY = baseY - barHeight;
+
+      doc.setFillColor(...colors[factors[i]]);
+      doc.rect(barX, barY, barWidth, barHeight, 'F');
+
+      doc.setFontSize(8);
+      doc.setTextColor(...SITE_COLORS.textDark);
+      doc.text(value.toString(), barX + barWidth / 2, barY - 1, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...colors[factors[i]]);
+      doc.text(factors[i], barX + barWidth / 2, baseY + 5, { align: 'center' });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(...SITE_COLORS.textMuted);
+      doc.text(labels[i], barX + barWidth / 2, baseY + 9, { align: 'center' });
+    });
+
+    adaptedArr.forEach((value, i) => {
+      const barX = x + width / 2 + 12 + i * spacing;
+      const barHeight = (value / maxValue) * chartHeight;
+      const barY = baseY - barHeight;
+
+      doc.setFillColor(...colors[factors[i]]);
+      doc.rect(barX, barY, barWidth, barHeight, 'F');
+
+      doc.setFontSize(8);
+      doc.setTextColor(...SITE_COLORS.textDark);
+      doc.text(value.toString(), barX + barWidth / 2, barY - 1, { align: 'center' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...colors[factors[i]]);
+      doc.text(factors[i], barX + barWidth / 2, baseY + 5, { align: 'center' });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(...SITE_COLORS.textMuted);
+      doc.text(labels[i], barX + barWidth / 2, baseY + 9, { align: 'center' });
+    });
+  };
+
+  const drawValuesRadar = (valuesObj: any, x: number, y: number, size: number) => {
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    const radius = size / 2 - 20;
+    const numValues = 6;
+    const maxValue = 60;
+
+    const valueNames: Record<string, string> = {
+      theoretical: 'Teórico',
+      economic: 'Econômico',
+      aesthetic: 'Estético',
+      social: 'Social',
+      political: 'Político',
+      spiritual: 'Espiritual'
+    };
+    
+    const orderedKeys = ['theoretical', 'economic', 'aesthetic', 'social', 'political', 'spiritual'];
+
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.2);
+    for (let i = 1; i <= 4; i++) {
+      const r = (radius / 4) * i;
+      doc.circle(centerX, centerY, r, 'S');
     }
+
+    for (let i = 0; i < numValues; i++) {
+      const angle = (i * 2 * Math.PI) / numValues - Math.PI / 2;
+      const endX = centerX + radius * Math.cos(angle);
+      const endY = centerY + radius * Math.sin(angle);
+      
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.2);
+      doc.line(centerX, centerY, endX, endY);
+      
+      const labelDist = radius + 8;
+      const labelX = centerX + labelDist * Math.cos(angle);
+      const labelY = centerY + labelDist * Math.sin(angle);
+      
+      const key = orderedKeys[i];
+      const value = valuesObj[key] || 0;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(...SITE_COLORS.textDark);
+      doc.text(valueNames[key], labelX, labelY, { align: 'center', maxWidth: 20 });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(...SITE_COLORS.info);
+      doc.text(`${value}`, labelX, labelY + 3, { align: 'center' });
+    }
+
+    const path: [number, number][] = [];
+    orderedKeys.forEach((key, i) => {
+      const value = valuesObj[key] || 0;
+      const normalizedValue = (value / maxValue) * radius;
+      const angle = (i * 2 * Math.PI) / numValues - Math.PI / 2;
+      const pointX = centerX + normalizedValue * Math.cos(angle);
+      const pointY = centerY + normalizedValue * Math.sin(angle);
+      path.push([pointX, pointY]);
+    });
+
+    if (path.length > 0) {
+      doc.setDrawColor(91, 192, 222);
+      doc.setLineWidth(0.5);
+      
+      for (let i = 0; i < path.length; i++) {
+        const nextI = (i + 1) % path.length;
+        doc.line(path[i][0], path[i][1], path[nextI][0], path[nextI][1]);
+      }
+      
+      path.forEach(([px, py]) => {
+        doc.setFillColor(91, 192, 222);
+        doc.circle(px, py, 1, 'F');
+      });
+    }
+  };
+
+  const drawLeadershipPie = (leadershipObj: any, x: number, y: number, radius: number) => {
+    const centerX = x + radius;
+    const centerY = y + radius;
+
+    const styles: Record<string, { label: string; color: [number, number, number] }> = {
+      executive: { label: 'Executivo', color: [217, 83, 79] },
+      motivator: { label: 'Motivador', color: [240, 173, 78] },
+      systematic: { label: 'Sistemático', color: [92, 184, 92] },
+      methodical: { label: 'Metódico', color: [91, 192, 222] }
+    };
+
+    const total = Object.values(leadershipObj).reduce((sum: number, val: any) => sum + (val || 0), 0);
+    let currentAngle = -90;
+
+    Object.entries(leadershipObj).forEach(([key, value]: [string, any]) => {
+      const percentage = (value / total) * 100;
+      const sliceAngle = (value / total) * 360;
+
+      doc.setFillColor(...styles[key].color);
+
+      const startRad = (currentAngle * Math.PI) / 180;
+      const endRad = ((currentAngle + sliceAngle) * Math.PI) / 180;
+
+      const steps = Math.max(20, Math.ceil(sliceAngle / 2));
+      for (let i = 0; i <= steps; i++) {
+        const angle = startRad + ((endRad - startRad) * i) / steps;
+        const px = centerX + radius * Math.cos(angle);
+        const py = centerY + radius * Math.sin(angle);
+
+        if (i === 0) {
+          doc.line(centerX, centerY, px, py);
+        } else {
+          const prevAngle = startRad + ((endRad - startRad) * (i - 1)) / steps;
+          const prevX = centerX + radius * Math.cos(prevAngle);
+          const prevY = centerY + radius * Math.sin(prevAngle);
+          doc.line(prevX, prevY, px, py);
+        }
+      }
+      doc.line(centerX + radius * Math.cos(endRad), centerY + radius * Math.sin(endRad), centerX, centerY);
+
+      const labelAngle = currentAngle + sliceAngle / 2;
+      const labelRad = (labelAngle * Math.PI) / 180;
+      const labelX = centerX + (radius * 0.65) * Math.cos(labelRad);
+      const labelY = centerY + (radius * 0.65) * Math.sin(labelRad);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${Math.round(percentage)}%`, labelX, labelY, { align: 'center' });
+
+      currentAngle += sliceAngle;
+    });
+
+    let legendY = y;
+    Object.entries(leadershipObj).forEach(([key, value]: [string, any]) => {
+      doc.setFillColor(...styles[key].color);
+      doc.rect(x + radius * 2 + 10, legendY, 5, 5, 'F');
+      
+      doc.setTextColor(...SITE_COLORS.textDark);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(styles[key].label, x + radius * 2 + 18, legendY + 4);
+      
+      legendY += 8;
+    });
+  };
+
+  const drawCompetenciesBar = (competenciesObj: any, x: number, y: number, width: number, height: number) => {
+    const entries = Object.entries(competenciesObj)
+      .filter(([key]) => key.endsWith('_n'))
+      .slice(0, 8)
+      .map(([key, value]) => ({
+        name: key.replace(/_n$/, '').replace(/_/g, ' ').toUpperCase(),
+        value: value as number
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    const barHeight = 10;
+    const spacing = 5;
+    const maxValue = 40;
+    const maxBarWidth = width - 80;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+
+    entries.forEach((item, i) => {
+      const barY = y + i * (barHeight + spacing);
+      const barWidth = (item.value / maxValue) * maxBarWidth;
+      const color = item.value > 30 ? [92, 184, 92] : item.value > 15 ? [240, 173, 78] : [217, 83, 79];
+
+      doc.setTextColor(...SITE_COLORS.textDark);
+      const displayName = item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name;
+      doc.text(displayName, x, barY + barHeight / 2 + 1.5);
+
+      doc.setFillColor(...(color as [number, number, number]));
+      doc.rect(x + 50, barY, barWidth, barHeight, 'F');
+
+      doc.setTextColor(...SITE_COLORS.textDark);
+      doc.text(`${item.value}`, x + 50 + barWidth + 2, barY + barHeight / 2 + 1.5);
+    });
   };
 
   const addSectionTitle = (title: string, color: [number, number, number] = SITE_COLORS.primary) => {
@@ -643,9 +893,8 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
   const naturalValues = [result.natural_d, result.natural_i, result.natural_s, result.natural_c];
   const adaptedValues = [result.adapted_d, result.adapted_i, result.adapted_s, result.adapted_c];
   
-  const discSVG = generateDISCChartSVG(naturalValues, adaptedValues);
   checkPageBreak(120);
-  addSVGImage(discSVG, margin, yPos, contentWidth, 100);
+  drawDISCChart(naturalValues, adaptedValues, margin, yPos, contentWidth, 100);
   yPos += 110;
 
   addSubtitle('Interpretação dos Resultados');
@@ -1133,9 +1382,8 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     addText('A teoria de valores identifica seis dimensões principais que motivam comportamentos e decisões. Seus resultados indicam suas prioridades e o que mais lhe motiva profissionalmente.');
     yPos += 10;
 
-    const valuesSVG = generateValuesRadarSVG(result.values_scores);
     checkPageBreak(120);
-    addSVGImage(valuesSVG, margin - 10, yPos, contentWidth + 20, 120);
+    drawValuesRadar(result.values_scores, margin, yPos, contentWidth);
     yPos += 130;
 
     addSubtitle('Interpretação dos Valores');
@@ -1220,9 +1468,8 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     addText('A análise de liderança identifica seus estilos predominantes ao liderar equipes e projetos.');
     yPos += 10;
 
-    const leadershipSVG = generateLeadershipPieSVG(result.leadership_style);
     checkPageBreak(100);
-    addSVGImage(leadershipSVG, margin, yPos, contentWidth, 90);
+    drawLeadershipPie(result.leadership_style, margin, yPos, 40);
     yPos += 100;
 
     addSubtitle('Descrição dos Estilos');
@@ -1260,9 +1507,8 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     addText('O mapeamento de competências identifica suas principais habilidades e áreas de desenvolvimento.');
     yPos += 10;
 
-    const competenciesSVG = generateCompetenciesSVG(result.competencies);
     checkPageBreak(120);
-    addSVGImage(competenciesSVG, margin - 5, yPos, contentWidth + 10, 110);
+    drawCompetenciesBar(result.competencies, margin, yPos, contentWidth, 110);
     yPos += 120;
 
     addSubtitle('Interpretação');
