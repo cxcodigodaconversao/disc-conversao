@@ -7,12 +7,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 
 interface EditUserDialogProps {
   user: {
@@ -34,6 +44,8 @@ export const EditUserDialog = ({
   onUserUpdated,
 }: EditUserDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
     full_name: user.full_name || "",
     email: user.email || "",
@@ -121,6 +133,55 @@ export const EditUserDialog = ({
       toast.error(error.message || "Erro ao atualizar usuário");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    setDeleting(true);
+    try {
+      console.log('Iniciando exclusão do usuário:', user.id);
+
+      // 1. Delete from user_roles
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (roleError) {
+        console.error('Erro ao deletar roles:', roleError);
+        throw roleError;
+      }
+
+      // 2. Delete from profiles
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+      
+      if (profileError) {
+        console.error('Erro ao deletar profile:', profileError);
+        throw profileError;
+      }
+
+      // 3. Delete from auth.users (via edge function)
+      const { error: authError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: user.id }
+      });
+      
+      if (authError) {
+        console.error('Erro ao deletar do auth:', authError);
+        throw authError;
+      }
+
+      toast.success("Usuário excluído com sucesso!");
+      onUserUpdated();
+      onOpenChange(false);
+      setShowDeleteAlert(false);
+    } catch (error: any) {
+      console.error("Erro ao excluir usuário:", error);
+      toast.error(error.message || "Erro ao excluir usuário");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -216,14 +277,24 @@ export const EditUserDialog = ({
           <div className="flex gap-3 pt-4">
             <Button
               type="button"
+              variant="destructive"
+              onClick={() => setShowDeleteAlert(true)}
+              disabled={loading || deleting}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir Usuário
+            </Button>
+            <div className="flex-1" />
+            <Button
+              type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
-              disabled={loading}
+              disabled={loading || deleting}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="flex-1" disabled={loading}>
+            <Button type="submit" disabled={loading || deleting}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -236,6 +307,36 @@ export const EditUserDialog = ({
           </div>
         </form>
       </DialogContent>
+
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O usuário <strong>{user.full_name}</strong> será permanentemente excluído do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser}
+              disabled={deleting}
+              className="bg-danger hover:bg-danger/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                "Sim, excluir"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

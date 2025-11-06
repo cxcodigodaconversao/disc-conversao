@@ -6,5 +6,11 @@ verify_jwt = true
 [functions.update-user]
 verify_jwt = true
 
+[functions.delete-user]
+verify_jwt = true
+
 [functions.send-assessment-invitation]
+verify_jwt = true
+
+[functions.regenerate-pdf]
 verify_jwt = true
