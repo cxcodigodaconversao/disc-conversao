@@ -215,9 +215,9 @@ export default function QuestionnaireFlow({ assessmentId }: QuestionnaireFlowPro
         duration: 4000
       });
       
-      // Aguardar 1.5 segundos antes de redirecionar para o usuário ver a mensagem
+      // Redirecionar para página de confirmação ao invés de results
       setTimeout(() => {
-        navigate(`/results/${assessmentId}`);
+        navigate(`/assessment/${assessmentId}/confirmacao`);
       }, 1500);
     } catch (error) {
       toast.dismiss('completing');

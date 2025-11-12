@@ -1318,6 +1318,111 @@ export const getCombinedProfile = (naturalD: number, naturalI: number, naturalS:
   return scores[0].factor;
 };
 
+// Mapeamento de adequação de perfis para funções (0-100%)
+export const ROLE_FIT_MATRIX: Record<string, Record<string, { fit: number; reason: string }>> = {
+  'SDR': {
+    'DI': { fit: 95, reason: 'Perfil ideal: combina assertividade (D) com habilidade social (I), essencial para prospecção ativa e construção de relacionamentos iniciais.' },
+    'ID': { fit: 90, reason: 'Excelente para networking e geração de leads. Alta capacidade de engajamento com prospects.' },
+    'D': { fit: 85, reason: 'Foco em resultados e persistência, mas pode precisar desenvolver empatia e escuta ativa.' },
+    'I': { fit: 80, reason: 'Natural em comunicação, mas pode precisar de mais estrutura e disciplina em follow-ups.' },
+    'IS': { fit: 60, reason: 'Boa comunicação, mas pode ter dificuldade com rejeição e necessita de scripts claros.' },
+    'DS': { fit: 55, reason: 'Pode atuar em SDR consultivo de ciclo médio, mas requer treinamento em soft skills.' },
+    'DC': { fit: 50, reason: 'Perfil muito analítico e direto para prospecção. Pode funcionar em outbound técnico B2B.' },
+    'SC': { fit: 35, reason: 'Baixa assertividade e influência social dificultam prospecção ativa. Melhor em inbound ou suporte.' },
+    'S': { fit: 30, reason: 'Evita confronto e pressão. Não é indicado para SDR sem desenvolvimento significativo.' },
+    'C': { fit: 25, reason: 'Perfil muito técnico e introspectivo para prospecção. Melhor em análise ou processos.' },
+    'CS': { fit: 30, reason: 'Combina introversão com evitação de conflitos. Não recomendado para prospecção ativa.' },
+    'CD': { fit: 40, reason: 'Pode atuar em SDR técnico com scripts, mas requer supervisão constante.' }
+  },
+  'Closer': {
+    'D': { fit: 95, reason: 'Perfil ideal: foco extremo em resultados, habilidade de fechar negócios e superar objeções.' },
+    'DC': { fit: 90, reason: 'Combina assertividade com análise. Excelente para vendas complexas e técnicas.' },
+    'DI': { fit: 88, reason: 'Assertivo e carismático. Ótimo para fechar com persuasão e construção de relacionamento.' },
+    'I': { fit: 70, reason: 'Forte em rapport, mas pode hesitar no fechamento. Precisa desenvolver assertividade.' },
+    'ID': { fit: 75, reason: 'Equilibra influência social com foco em resultado. Bom para consultivo.' },
+    'IS': { fit: 55, reason: 'Pode fechar vendas relacionais, mas evita pressão e objeções diretas.' },
+    'CD': { fit: 65, reason: 'Bom para vendas técnicas de alto valor. Precisa ganhar confiança em negociação.' },
+    'SC': { fit: 40, reason: 'Evita confronto e pressão. Não recomendado para closer sem 6+ meses de desenvolvimento.' },
+    'S': { fit: 35, reason: 'Perfil muito relacional e evita fechamento direto. Melhor em CS ou suporte.' },
+    'C': { fit: 45, reason: 'Foco em dados pode dificultar decisão emocional do fechamento. Vendas técnicas apenas.' },
+    'CS': { fit: 38, reason: 'Perfil passivo e analítico. Não indicado para closer.' },
+    'DS': { fit: 70, reason: 'Pode fechar vendas consultivas, mas prefere ciclos longos e relacionamentos estáveis.' }
+  },
+  'Head Comercial': {
+    'D': { fit: 90, reason: 'Liderança natural, foco em metas e capacidade de tomar decisões estratégicas rápidas.' },
+    'DC': { fit: 95, reason: 'Perfil ideal: visão estratégica, orientação a dados e execução disciplinada.' },
+    'DI': { fit: 85, reason: 'Combina liderança com carisma. Ótimo para motivar times, mas pode precisar de estrutura.' },
+    'CD': { fit: 80, reason: 'Excelente em processos e métricas. Pode precisar desenvolver habilidades de influência.' },
+    'I': { fit: 60, reason: 'Carisma e motivação, mas pode faltar disciplina estratégica e foco em números.' },
+    'ID': { fit: 65, reason: 'Bom para liderança inspiracional, mas precisa de apoio em processos e análise.' },
+    'IS': { fit: 50, reason: 'Perfil muito empático e relacional para a pressão de gestão comercial.' },
+    'SC': { fit: 45, reason: 'Falta assertividade e capacidade de decisão rápida. Melhor como analista.' },
+    'S': { fit: 40, reason: 'Evita conflito e mudanças. Não indicado para liderança comercial.' },
+    'C': { fit: 55, reason: 'Excelente em análise, mas pode ser indeciso e lento para liderar equipe de vendas.' },
+    'CS': { fit: 48, reason: 'Perfil muito técnico e passivo para gestão comercial.' },
+    'DS': { fit: 70, reason: 'Pode liderar com foco em metas de longo prazo, mas precisa de urgência.' }
+  },
+  'Customer Success': {
+    'S': { fit: 95, reason: 'Perfil ideal: estabilidade, paciência e foco em relacionamentos de longo prazo.' },
+    'SC': { fit: 90, reason: 'Combina empatia com atenção aos detalhes. Excelente para suporte técnico humanizado.' },
+    'IS': { fit: 88, reason: 'Ótimo relacionamento interpessoal com consistência. Ideal para CS.' },
+    'CS': { fit: 85, reason: 'Metódico e empático. Cria processos de suporte eficientes e humanizados.' },
+    'I': { fit: 70, reason: 'Excelente em engajamento, mas pode faltar follow-up e disciplina operacional.' },
+    'C': { fit: 65, reason: 'Ótimo em suporte técnico, mas pode ser pouco empático e relacional.' },
+    'ID': { fit: 75, reason: 'Equilibra relacionamento com foco em resultado. Bom para upsell/cross-sell.' },
+    'DS': { fit: 60, reason: 'Pode atuar em CS consultivo, mas precisa desenvolver paciência e empatia.' },
+    'D': { fit: 45, reason: 'Falta paciência para atendimento de longo prazo. Melhor em vendas.' },
+    'DI': { fit: 55, reason: 'Pode atuar em CS estratégico/upsell, mas não em suporte operacional.' },
+    'DC': { fit: 50, reason: 'Muito direto e focado em processos para atendimento humanizado.' },
+    'CD': { fit: 70, reason: 'Bom para suporte técnico estruturado, mas precisa desenvolver soft skills.' }
+  },
+  'Analista de Processos': {
+    'C': { fit: 95, reason: 'Perfil ideal: atenção extrema aos detalhes, foco em qualidade e análise profunda.' },
+    'CD': { fit: 90, reason: 'Combina análise com execução. Excelente para implementação de processos.' },
+    'CS': { fit: 88, reason: 'Metódico com empatia. Cria processos humanizados e sustentáveis.' },
+    'SC': { fit: 85, reason: 'Disciplina e consistência. Ótimo para documentação e controle de qualidade.' },
+    'DC': { fit: 80, reason: 'Foco em dados e resultados. Pode implementar processos de alta performance.' },
+    'S': { fit: 65, reason: 'Consistente, mas pode faltar análise crítica e inovação em processos.' },
+    'D': { fit: 40, reason: 'Falta paciência para análise detalhada. Prefere execução rápida.' },
+    'I': { fit: 35, reason: 'Disperso e pouco estruturado para análise de processos.' },
+    'DI': { fit: 45, reason: 'Foco em resultado pode atropelar análise detalhada necessária.' },
+    'ID': { fit: 50, reason: 'Pode trazer criatividade, mas falta disciplina analítica.' },
+    'IS': { fit: 60, reason: 'Pode criar processos relacionais, mas precisa desenvolver rigor técnico.' },
+    'DS': { fit: 55, reason: 'Pode mapear processos, mas precisa de paciência para análise profunda.' }
+  }
+};
+
+// Função para sugerir funções alternativas
+export const suggestAlternativeRoles = (
+  combinedProfile: string,
+  targetRole?: string
+): Array<{ role: string; fit: number; reason: string; development?: string }> => {
+  const allRoles = Object.keys(ROLE_FIT_MATRIX);
+  
+  const recommendations = allRoles
+    .map(role => {
+      const fitData = ROLE_FIT_MATRIX[role][combinedProfile] || { fit: 50, reason: 'Adequação não mapeada para este perfil.' };
+      return {
+        role,
+        fit: fitData.fit,
+        reason: fitData.reason,
+        development: fitData.fit < 60 ? 'Requer 3-6 meses de desenvolvimento' : fitData.fit < 75 ? 'Requer 1-3 meses de onboarding' : undefined
+      };
+    })
+    .sort((a, b) => b.fit - a.fit);
+  
+  // Se há um target_role e o perfil não é adequado, retornar as 3 melhores alternativas
+  if (targetRole) {
+    const targetFit = ROLE_FIT_MATRIX[targetRole]?.[combinedProfile]?.fit || 50;
+    if (targetFit < 70) {
+      // Não adequado, retornar alternativas (excluindo o target)
+      return recommendations.filter(r => r.role !== targetRole).slice(0, 3);
+    }
+  }
+  
+  return recommendations.slice(0, 3);
+};
+
 // Função para gerar conclusão automática melhorada
 export const generateHiringConclusion = (
   combinedProfile: string,
@@ -1325,7 +1430,8 @@ export const generateHiringConclusion = (
   naturalI: number,
   naturalS: number,
   naturalC: number,
-  tensionLevel: string
+  tensionLevel: string,
+  targetRole?: string
 ): string => {
   const interpretation = STRATEGIC_INTERPRETATIONS[combinedProfile] || STRATEGIC_INTERPRETATIONS['DI'];
   
@@ -1394,7 +1500,32 @@ export const generateHiringConclusion = (
     plan90Days = 'Semanas 1-4: Imersão na cultura e expectativas. | Semanas 5-8: Desenvolver competências-chave identificadas. | Semanas 9-12: Avaliação de fit e ajustes.';
   }
   
-  return `O perfil identificado é ${combinedProfile}, com energia voltada a ${dominantTraits}.
+  
+  // Verificar adequação para o cargo alvo (se especificado)
+  let targetRoleFit = '';
+  let alternativeRolesText = '';
+  
+  if (targetRole && ROLE_FIT_MATRIX[targetRole]) {
+    const fitData = ROLE_FIT_MATRIX[targetRole][combinedProfile] || { fit: 50, reason: 'Adequação não avaliada.' };
+    const isAdequate = fitData.fit >= 70;
+    
+    targetRoleFit = `\n\nAVALIAÇÃO PARA A VAGA: ${targetRole}
+STATUS: ${isAdequate ? '✅ RECOMENDADO' : '⚠️ NÃO RECOMENDADO'} (Adequação: ${fitData.fit}%)
+JUSTIFICATIVA: ${fitData.reason}`;
+    
+    // Se NÃO for adequado, sugerir alternativas
+    if (!isAdequate) {
+      const alternatives = suggestAlternativeRoles(combinedProfile, targetRole);
+      alternativeRolesText = `\n\nFUNÇÕES ALTERNATIVAS RECOMENDADAS:\n\n${alternatives.map((alt, idx) => {
+        const emoji = idx === 0 ? '✅' : idx === 1 ? '✅' : '⚠️';
+        return `${emoji} ${idx + 1}ª OPÇÃO: ${alt.role}
+   ADEQUAÇÃO: ${alt.fit >= 85 ? 'ALTA' : alt.fit >= 70 ? 'MÉDIA-ALTA' : 'MÉDIA'} (${alt.fit}%)
+   JUSTIFICATIVA: ${alt.reason}${alt.development ? `\n   DESENVOLVIMENTO: ${alt.development}` : ''}`;
+      }).join('\n\n')}`;
+    }
+  }
+  
+  return `O perfil identificado é ${combinedProfile}, com energia voltada a ${dominantTraits}.${targetRoleFit}
 
 RECOMENDAÇÃO PARA CONTRATAÇÃO:
 • CARGO IDEAL: ${idealRole}
@@ -1405,7 +1536,7 @@ RECOMENDAÇÃO PARA CONTRATAÇÃO:
 NÍVEL DE TENSÃO: ${tensionText}
 
 PLANO DE 90 DIAS:
-${plan90Days}
+${plan90Days}${alternativeRolesText}
 
 CONCLUSÃO: ${interpretation.hiringRecommendation}`;
 };

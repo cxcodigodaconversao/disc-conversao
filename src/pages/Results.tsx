@@ -29,13 +29,26 @@ export default function Results() {
 
   const fetchResults = async () => {
     try {
+      // Buscar assessment e validar acesso
       const { data: assessmentData, error: assessmentError } = await supabase
         .from("assessments")
-        .select("*, campaigns(name)")
+        .select("*, campaigns(name, created_by)")
         .eq("id", id)
         .single();
 
       if (assessmentError) throw assessmentError;
+
+      // Verificar se o usuário atual é o criador da campanha
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user || assessmentData.campaigns.created_by !== user.id) {
+        // Usuário não autorizado
+        setAssessment(null);
+        setResult(null);
+        setLoading(false);
+        return;
+      }
+
       setAssessment(assessmentData);
 
       const { data: resultData, error: resultError } = await supabase
@@ -105,15 +118,24 @@ export default function Results() {
     );
   }
 
-  if (!result) {
+  if (!result || !assessment) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-        <Card className="p-8 max-w-md text-center">
-          <h1 className="text-2xl font-bold mb-4">Resultados não encontrados</h1>
+        <Card className="p-8 max-w-md text-center border-red-200">
+          <div className="mb-4 flex justify-center">
+            <div className="rounded-full bg-red-100 p-4">
+              <svg className="w-12 h-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold mb-4 text-red-600">Acesso Restrito</h1>
           <p className="text-muted-foreground mb-6">
-            Os resultados ainda estão sendo processados ou não existem.
+            Você não tem permissão para visualizar estes resultados. Apenas o responsável pela campanha pode acessá-los.
           </p>
-          <Button onClick={() => navigate("/")}>Voltar ao Início</Button>
+          <Button onClick={() => navigate("/dashboard")} variant="outline">
+            Voltar ao Dashboard
+          </Button>
         </Card>
       </div>
     );

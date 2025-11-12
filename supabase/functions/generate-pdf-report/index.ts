@@ -20,10 +20,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch assessment data
+    // Fetch assessment data with campaign target_role
     const { data: assessment, error: assessmentError } = await supabase
       .from('assessments')
-      .select(`*, campaigns (name, description)`)
+      .select(`*, campaigns (name, description, target_role)`)
       .eq('id', assessment_id)
       .single();
 
@@ -182,8 +182,119 @@ const getCombinedProfile = (naturalD: number, naturalI: number, naturalS: number
   return scores[0].factor;
 };
 
-const generateHiringConclusion = (combinedProfile: string, naturalD: number, naturalI: number, naturalS: number, naturalC: number, tensionLevel: string): string => {
+// Mapeamento de adequação de perfis para funções (0-100%)
+const ROLE_FIT_MATRIX: Record<string, Record<string, { fit: number; reason: string }>> = {
+  'SDR': {
+    'DI': { fit: 95, reason: 'Perfil ideal: combina assertividade (D) com habilidade social (I), essencial para prospecção ativa e construção de relacionamentos iniciais.' },
+    'ID': { fit: 90, reason: 'Excelente para networking e geração de leads. Alta capacidade de engajamento com prospects.' },
+    'D': { fit: 85, reason: 'Foco em resultados e persistência, mas pode precisar desenvolver empatia e escuta ativa.' },
+    'I': { fit: 80, reason: 'Natural em comunicação, mas pode precisar de mais estrutura e disciplina em follow-ups.' },
+    'IS': { fit: 60, reason: 'Boa comunicação, mas pode ter dificuldade com rejeição e necessita de scripts claros.' },
+    'DS': { fit: 55, reason: 'Pode atuar em SDR consultivo de ciclo médio, mas requer treinamento em soft skills.' },
+    'DC': { fit: 50, reason: 'Perfil muito analítico e direto para prospecção. Pode funcionar em outbound técnico B2B.' },
+    'SC': { fit: 35, reason: 'Baixa assertividade e influência social dificultam prospecção ativa. Melhor em inbound ou suporte.' },
+    'S': { fit: 30, reason: 'Evita confronto e pressão. Não é indicado para SDR sem desenvolvimento significativo.' },
+    'C': { fit: 25, reason: 'Perfil muito técnico e introspectivo para prospecção. Melhor em análise ou processos.' },
+    'CS': { fit: 30, reason: 'Combina introversão com evitação de conflitos. Não recomendado para prospecção ativa.' },
+    'CD': { fit: 40, reason: 'Pode atuar em SDR técnico com scripts, mas requer supervisão constante.' }
+  },
+  'Closer': {
+    'D': { fit: 95, reason: 'Perfil ideal: foco extremo em resultados, habilidade de fechar negócios e superar objeções.' },
+    'DC': { fit: 90, reason: 'Combina assertividade com análise. Excelente para vendas complexas e técnicas.' },
+    'DI': { fit: 88, reason: 'Assertivo e carismático. Ótimo para fechar com persuasão e construção de relacionamento.' },
+    'I': { fit: 70, reason: 'Forte em rapport, mas pode hesitar no fechamento. Precisa desenvolver assertividade.' },
+    'ID': { fit: 75, reason: 'Equilibra influência social com foco em resultado. Bom para consultivo.' },
+    'IS': { fit: 55, reason: 'Pode fechar vendas relacionais, mas evita pressão e objeções diretas.' },
+    'CD': { fit: 65, reason: 'Bom para vendas técnicas de alto valor. Precisa ganhar confiança em negociação.' },
+    'SC': { fit: 40, reason: 'Evita confronto e pressão. Não recomendado para closer sem 6+ meses de desenvolvimento.' },
+    'S': { fit: 35, reason: 'Perfil muito relacional e evita fechamento direto. Melhor em CS ou suporte.' },
+    'C': { fit: 45, reason: 'Foco em dados pode dificultar decisão emocional do fechamento. Vendas técnicas apenas.' },
+    'CS': { fit: 38, reason: 'Perfil passivo e analítico. Não indicado para closer.' },
+    'DS': { fit: 70, reason: 'Pode fechar vendas consultivas, mas prefere ciclos longos e relacionamentos estáveis.' }
+  },
+  'Head Comercial': {
+    'D': { fit: 90, reason: 'Liderança natural, foco em metas e capacidade de tomar decisões estratégicas rápidas.' },
+    'DC': { fit: 95, reason: 'Perfil ideal: visão estratégica, orientação a dados e execução disciplinada.' },
+    'DI': { fit: 85, reason: 'Combina liderança com carisma. Ótimo para motivar times, mas pode precisar de estrutura.' },
+    'CD': { fit: 80, reason: 'Excelente em processos e métricas. Pode precisar desenvolver habilidades de influência.' },
+    'I': { fit: 60, reason: 'Carisma e motivação, mas pode faltar disciplina estratégica e foco em números.' },
+    'ID': { fit: 65, reason: 'Bom para liderança inspiracional, mas precisa de apoio em processos e análise.' },
+    'IS': { fit: 50, reason: 'Perfil muito empático e relacional para a pressão de gestão comercial.' },
+    'SC': { fit: 45, reason: 'Falta assertividade e capacidade de decisão rápida. Melhor como analista.' },
+    'S': { fit: 40, reason: 'Evita conflito e mudanças. Não indicado para liderança comercial.' },
+    'C': { fit: 55, reason: 'Excelente em análise, mas pode ser indeciso e lento para liderar equipe de vendas.' },
+    'CS': { fit: 48, reason: 'Perfil muito técnico e passivo para gestão comercial.' },
+    'DS': { fit: 70, reason: 'Pode liderar com foco em metas de longo prazo, mas precisa de urgência.' }
+  },
+  'Customer Success': {
+    'S': { fit: 95, reason: 'Perfil ideal: estabilidade, paciência e foco em relacionamentos de longo prazo.' },
+    'SC': { fit: 90, reason: 'Combina empatia com atenção aos detalhes. Excelente para suporte técnico humanizado.' },
+    'IS': { fit: 88, reason: 'Ótimo relacionamento interpessoal com consistência. Ideal para CS.' },
+    'CS': { fit: 85, reason: 'Metódico e empático. Cria processos de suporte eficientes e humanizados.' },
+    'I': { fit: 70, reason: 'Excelente em engajamento, mas pode faltar follow-up e disciplina operacional.' },
+    'C': { fit: 65, reason: 'Ótimo em suporte técnico, mas pode ser pouco empático e relacional.' },
+    'ID': { fit: 75, reason: 'Equilibra relacionamento com foco em resultado. Bom para upsell/cross-sell.' },
+    'DS': { fit: 60, reason: 'Pode atuar em CS consultivo, mas precisa desenvolver paciência e empatia.' },
+    'D': { fit: 45, reason: 'Falta paciência para atendimento de longo prazo. Melhor em vendas.' },
+    'DI': { fit: 55, reason: 'Pode atuar em CS estratégico/upsell, mas não em suporte operacional.' },
+    'DC': { fit: 50, reason: 'Muito direto e focado em processos para atendimento humanizado.' },
+    'CD': { fit: 70, reason: 'Bom para suporte técnico estruturado, mas precisa desenvolver soft skills.' }
+  },
+  'Analista de Processos': {
+    'C': { fit: 95, reason: 'Perfil ideal: atenção extrema aos detalhes, foco em qualidade e análise profunda.' },
+    'CD': { fit: 90, reason: 'Combina análise com execução. Excelente para implementação de processos.' },
+    'CS': { fit: 88, reason: 'Metódico com empatia. Cria processos humanizados e sustentáveis.' },
+    'SC': { fit: 85, reason: 'Disciplina e consistência. Ótimo para documentação e controle de qualidade.' },
+    'DC': { fit: 80, reason: 'Foco em dados e resultados. Pode implementar processos de alta performance.' },
+    'S': { fit: 65, reason: 'Consistente, mas pode faltar análise crítica e inovação em processos.' },
+    'D': { fit: 40, reason: 'Falta paciência para análise detalhada. Prefere execução rápida.' },
+    'I': { fit: 35, reason: 'Disperso e pouco estruturado para análise de processos.' },
+    'DI': { fit: 45, reason: 'Foco em resultado pode atropelar análise detalhada necessária.' },
+    'ID': { fit: 50, reason: 'Pode trazer criatividade, mas falta disciplina analítica.' },
+    'IS': { fit: 60, reason: 'Pode criar processos relacionais, mas precisa desenvolver rigor técnico.' },
+    'DS': { fit: 55, reason: 'Pode mapear processos, mas precisa de paciência para análise profunda.' }
+  }
+};
+
+const suggestAlternativeRoles = (
+  combinedProfile: string,
+  targetRole?: string
+): Array<{ role: string; fit: number; reason: string; development?: string }> => {
+  const allRoles = Object.keys(ROLE_FIT_MATRIX);
+  
+  const recommendations = allRoles
+    .map(role => {
+      const fitData = ROLE_FIT_MATRIX[role][combinedProfile] || { fit: 50, reason: 'Adequação não mapeada para este perfil.' };
+      return {
+        role,
+        fit: fitData.fit,
+        reason: fitData.reason,
+        development: fitData.fit < 60 ? 'Requer 3-6 meses de desenvolvimento' : fitData.fit < 75 ? 'Requer 1-3 meses de onboarding' : undefined
+      };
+    })
+    .sort((a, b) => b.fit - a.fit);
+  
+  if (targetRole) {
+    const targetFit = ROLE_FIT_MATRIX[targetRole]?.[combinedProfile]?.fit || 50;
+    if (targetFit < 70) {
+      return recommendations.filter(r => r.role !== targetRole).slice(0, 3);
+    }
+  }
+  
+  return recommendations.slice(0, 3);
+};
+
+const generateHiringConclusion = (
+  combinedProfile: string,
+  naturalD: number,
+  naturalI: number,
+  naturalS: number,
+  naturalC: number,
+  tensionLevel: string,
+  targetRole?: string
+): string => {
   const interpretation = STRATEGIC_INTERPRETATIONS[combinedProfile] || STRATEGIC_INTERPRETATIONS['DI'];
+  
   const profileFactors = combinedProfile.split('');
   const dominantTraits = profileFactors.map(f => {
     switch(f) {
@@ -194,87 +305,94 @@ const generateHiringConclusion = (combinedProfile: string, naturalD: number, nat
       default: return '';
     }
   }).join(' e ');
+  
+  let idealRole = 'Closer';
+  if (['D', 'DC', 'CD', 'DI'].includes(combinedProfile)) {
+    idealRole = naturalD > 30 && naturalC > 20 ? 'Head Comercial' : 'Gestor Comercial';
+  } else if (['I', 'ID', 'DI'].includes(combinedProfile)) {
+    idealRole = 'SDR';
+  } else if (['S', 'SC', 'CS', 'IS'].includes(combinedProfile)) {
+    idealRole = 'Suporte/Customer Success';
+  } else if (['C', 'CD', 'DC'].includes(combinedProfile)) {
+    idealRole = 'Analista de Processos';
+  }
+  
+  const canStartNow = tensionLevel === 'low' ? 'Sim' : tensionLevel === 'moderate' ? 'Sim, com ressalvas' : 'Requer avaliação detalhada';
+  
+  let devTime = 'Imediato';
+  if (tensionLevel === 'high') {
+    devTime = '90 dias com acompanhamento próximo';
+  } else if (tensionLevel === 'moderate') {
+    devTime = '30 dias com onboarding estruturado';
+  }
+  
+  let supportType = 'Autonomia com check-ins semanais';
+  if (naturalD < 15 && naturalI < 15) {
+    supportType = 'Mentoria próxima com scripts e processos claros';
+  } else if (naturalD > 30 && naturalC < 15) {
+    supportType = 'Supervisão para garantir seguimento de processos';
+  } else if (tensionLevel === 'high') {
+    supportType = 'Acompanhamento diário nas primeiras 4 semanas';
+  }
+  
   const tensionText = tensionLevel === 'high' 
-    ? 'Alta tensão entre perfil natural e adaptado sugere ambiente de pressão. Requer monitoramento de bem-estar.' 
+    ? 'ALTA - Ambiente exige adaptação significativa. Risco de burnout se não houver suporte adequado. Monitorar bem-estar semanalmente.' 
     : tensionLevel === 'moderate'
-    ? 'Tensão moderada indica adaptação controlada ao ambiente.'
-    : 'Baixa tensão indica alinhamento entre perfil natural e demandas do ambiente.';
-  return `O perfil identificado é ${combinedProfile}, com energia voltada a ${dominantTraits}. ${interpretation.hiringRecommendation} ${tensionText} Recomenda-se acompanhamento nos primeiros 90 dias com metas curtas e feedback semanal.`;
+    ? 'MODERADA - Adaptação controlada. Candidato está ajustando comportamento de forma sustentável.'
+    : 'BAIXA - Excelente alinhamento entre perfil natural e demandas da função. Candidato pode performar com autenticidade.';
+  
+  let plan90Days = '';
+  if (naturalD > 25) {
+    plan90Days = 'Semanas 1-4: Imersão em processos e cultura. | Semanas 5-8: Assumir primeiras metas individuais. | Semanas 9-12: Avaliar performance e ajustar estilo de liderança.';
+  } else if (naturalI > 25) {
+    plan90Days = 'Semanas 1-4: Treinamento em técnicas de comunicação e scripts. | Semanas 5-8: Praticar abordagem com supervisão. | Semanas 9-12: Atuar com autonomia e medir conversão.';
+  } else if (naturalS > 25) {
+    plan90Days = 'Semanas 1-4: Conhecer processos e ferramentas. | Semanas 5-8: Desenvolver consistência no atendimento. | Semanas 9-12: Buscar feedback e identificar melhorias contínuas.';
+  } else if (naturalC > 25) {
+    plan90Days = 'Semanas 1-4: Dominar sistemas e métricas. | Semanas 5-8: Praticar decisão rápida com dados. | Semanas 9-12: Aumentar velocidade mantendo qualidade.';
+  } else {
+    plan90Days = 'Semanas 1-4: Imersão na cultura e expectativas. | Semanas 5-8: Desenvolver competências-chave identificadas. | Semanas 9-12: Avaliação de fit e ajustes.';
+  }
+  
+  let targetRoleFit = '';
+  let alternativeRolesText = '';
+  
+  if (targetRole && ROLE_FIT_MATRIX[targetRole]) {
+    const fitData = ROLE_FIT_MATRIX[targetRole][combinedProfile] || { fit: 50, reason: 'Adequação não avaliada.' };
+    const isAdequate = fitData.fit >= 70;
+    
+    targetRoleFit = `\n\nAVALIAÇÃO PARA A VAGA: ${targetRole}
+STATUS: ${isAdequate ? '✅ RECOMENDADO' : '⚠️ NÃO RECOMENDADO'} (Adequação: ${fitData.fit}%)
+JUSTIFICATIVA: ${fitData.reason}`;
+    
+    if (!isAdequate) {
+      const alternatives = suggestAlternativeRoles(combinedProfile, targetRole);
+      alternativeRolesText = `\n\nFUNÇÕES ALTERNATIVAS RECOMENDADAS:\n\n${alternatives.map((alt, idx) => {
+        const emoji = idx === 0 ? '✅' : idx === 1 ? '✅' : '⚠️';
+        return `${emoji} ${idx + 1}ª OPÇÃO: ${alt.role}
+   ADEQUAÇÃO: ${alt.fit >= 85 ? 'ALTA' : alt.fit >= 70 ? 'MÉDIA-ALTA' : 'MÉDIA'} (${alt.fit}%)
+   JUSTIFICATIVA: ${alt.reason}${alt.development ? `\n   DESENVOLVIMENTO: ${alt.development}` : ''}`;
+      }).join('\n\n')}`;
+    }
+  }
+  
+  return `O perfil identificado é ${combinedProfile}, com energia voltada a ${dominantTraits}.${targetRoleFit}
+
+RECOMENDAÇÃO PARA CONTRATAÇÃO:
+• CARGO IDEAL: ${idealRole}
+• PODE ASSUMIR HOJE: ${canStartNow}
+• TEMPO DE DESENVOLVIMENTO ESTIMADO: ${devTime}
+• TIPO DE SUPORTE NECESSÁRIO: ${supportType}
+
+NÍVEL DE TENSÃO: ${tensionText}
+
+PLANO DE 90 DIAS:
+${plan90Days}${alternativeRolesText}
+
+CONCLUSÃO: ${interpretation.hiringRecommendation}`;
 };
 
-// ============= PDF GENERATION (FASE 2, 3, 4) =============
-
-async function generatePDFDocument(assessment: any, result: any): Promise<Uint8Array> {
-  const SITE_COLORS = {
-    primary: [210, 188, 143] as [number, number, number],        // Gold #d2bc8f
-    background: [12, 18, 28] as [number, number, number],
-    card: [26, 35, 50] as [number, number, number],
-    foreground: [255, 255, 255] as [number, number, number],
-    success: [92, 184, 92] as [number, number, number],          // Green
-    warning: [240, 173, 78] as [number, number, number],         // Orange
-    danger: [217, 83, 79] as [number, number, number],           // Red
-    info: [91, 192, 222] as [number, number, number],            // Blue
-    discD: [217, 83, 79] as [number, number, number],
-    discI: [240, 173, 78] as [number, number, number],
-    discS: [92, 184, 92] as [number, number, number],
-    discC: [91, 192, 222] as [number, number, number],
-    textPrimary: [255, 255, 255] as [number, number, number],
-    textSecondary: [160, 174, 192] as [number, number, number],
-    textMuted: [107, 114, 128] as [number, number, number],
-    textDark: [17, 24, 39] as [number, number, number],
-    textMedium: [55, 65, 81] as [number, number, number]
-  };
-
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-  const pageHeight = 297;
-  const pageWidth = 210;
-  const margin = 20;
-  const contentWidth = pageWidth - (2 * margin);
-  let yPos = margin;
-  let currentPage = 1;
-
-  // Helper functions
-  const addPage = () => {
-    // Preservar estado da fonte antes de adicionar página
-    const currentFont = doc.getFont();
-    const currentFontSize = doc.getFontSize();
-    
-    doc.addPage();
-    currentPage++;
-    addHeader();
-    addFooter();
-    yPos = margin + 15;
-    
-    // Restaurar estado da fonte
-    doc.setFont(currentFont.fontName, currentFont.fontStyle);
-    doc.setFontSize(currentFontSize);
-  };
-
-  const addHeader = () => {
-    if (currentPage > 1) {
-      doc.setFontSize(9);
-      doc.setTextColor(...SITE_COLORS.textMuted);
-      doc.text('DISC da Conversão - Relatório Confidencial', pageWidth - margin, 12, { align: 'right' });
-    }
-  };
-
-  const addFooter = () => {
-    doc.setFontSize(8);
-    doc.setTextColor(...SITE_COLORS.textMuted);
-    doc.text(`© 2025 DISC da Conversão - Página ${currentPage}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  };
-
-  const checkPageBreak = (neededSpace: number) => {
-    if (yPos + neededSpace > pageHeight - 30) {
-      addPage();
-    }
-  };
-
-  const wrapText = (text: string, maxWidth: number): string[] => {
-    return doc.splitTextToSize(text, maxWidth);
-  };
-
+const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8Array> => {
   // Drawing functions for charts
   const drawDISCChart = (
     naturalArr: number[],
@@ -1627,13 +1745,15 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
   doc.text('6. Conclusão Automática', margin, yPos);
   yPos += 8;
 
+  const targetRole = (assessment as any).campaigns?.target_role;
   const conclusion = generateHiringConclusion(
     combinedProfile,
     result.natural_d,
     result.natural_i,
     result.natural_s,
     result.natural_c,
-    result.tension_level
+    result.tension_level,
+    targetRole
   );
 
   doc.setFont('helvetica', 'normal');

@@ -28,9 +28,9 @@ export default function Assessment() {
 
       if (error) throw error;
       
-      // CAMADA 1: Verificação de Status - Redirecionar se já concluído
+      // CAMADA 1: Verificação de Status - Mostrar confirmação se já concluído
       if (data.status === 'completed') {
-        navigate(`/results/${id}`);
+        navigate(`/assessment/${id}/confirmacao`);
         return;
       }
       
@@ -69,28 +69,7 @@ export default function Assessment() {
     );
   }
 
-  // CAMADA 2: Tela de "Assessment Já Concluído"
-  if (assessment?.status === 'completed') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-        <Card className="p-8 max-w-md text-center">
-          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
-          <h1 className="text-2xl font-bold mb-4">Assessment Já Concluído!</h1>
-          <p className="text-muted-foreground mb-2">
-            Você já completou este assessment.
-          </p>
-          {assessment.completed_at && (
-            <p className="text-sm text-muted-foreground mb-6">
-              Concluído em {format(new Date(assessment.completed_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-            </p>
-          )}
-          <Button onClick={() => navigate(`/results/${id}`)}>
-            Ver Meus Resultados
-          </Button>
-        </Card>
-      </div>
-    );
-  }
+  // CAMADA 2: Removida - redirecionamento já feito no useEffect
 
   if (!assessment) {
     return (
