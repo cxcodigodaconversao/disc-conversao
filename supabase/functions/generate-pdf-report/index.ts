@@ -112,28 +112,28 @@ const PROFILE_BASE_DESCRIPTIONS: Record<string, any> = {
 
 const ROLE_MAPPINGS: Record<string, any> = {
   'SDR': {
-    mostIndicated: ['D', 'I', 'DI', 'ID'],
-    requiresAdaptation: ['C', 'S', 'SC', 'CS'],
-    developmentRecommendations: 'Treinar ritmo, improviso e entusiasmo em contato frio. Desenvolver confiança na abordagem inicial.'
+    mostIndicated: ['DC', 'CD', 'D', 'C'],
+    requiresAdaptation: ['DI', 'ID', 'I', 'S', 'SC', 'CS', 'IS', 'SI'],
+    developmentRecommendations: 'Treinar disciplina em CRM, follow-up estruturado e conformidade com processos. SDR requer D alto (assertividade) + C alto (disciplina operacional).'
   },
   'Closer': {
-    mostIndicated: ['D', 'C', 'DC', 'CD', 'DI'],
-    requiresAdaptation: ['I', 'S', 'IS', 'SI'],
-    developmentRecommendations: 'Desenvolver escuta ativa e leitura de perfil; treinar assertividade e técnica de fechamento estruturado.'
+    mostIndicated: ['DI', 'ID', 'D', 'DC', 'I'],
+    requiresAdaptation: ['CD', 'S', 'IS', 'SI', 'SC', 'CS', 'C'],
+    developmentRecommendations: 'Desenvolver escuta ativa e leitura de perfil; treinar assertividade e técnica de fechamento estruturado. Perfis ID/DI são naturalmente fortes em rapport e fechamento.'
   },
   'Suporte/Atendimento': {
-    mostIndicated: ['S', 'C', 'SC', 'CS', 'IS'],
-    requiresAdaptation: ['D', 'I'],
+    mostIndicated: ['S', 'SC', 'IS', 'CS', 'C'],
+    requiresAdaptation: ['D', 'DI', 'ID', 'I'],
     developmentRecommendations: 'Praticar empatia e paciência; criar checklists e rotinas de atendimento consistentes.'
   },
   'Gestor Comercial': {
-    mostIndicated: ['D', 'S', 'DS', 'DI'],
-    requiresAdaptation: ['I', 'C'],
+    mostIndicated: ['D', 'DC', 'DI', 'DS'],
+    requiresAdaptation: ['ID', 'I', 'C', 'IS'],
     developmentRecommendations: 'Treinar liderança situacional, equilibrando pressão por resultados com empatia pela equipe.'
   },
   'Head/Estratégico': {
-    mostIndicated: ['D', 'C', 'DC', 'CD'],
-    requiresAdaptation: ['I', 'IS'],
+    mostIndicated: ['DC', 'D', 'CD', 'C'],
+    requiresAdaptation: ['DI', 'I', 'ID', 'IS', 'S'],
     developmentRecommendations: 'Focar em visão analítica, delegar mais e dominar gestão de indicadores estratégicos.'
   }
 };
@@ -185,25 +185,25 @@ const getCombinedProfile = (naturalD: number, naturalI: number, naturalS: number
 // Mapeamento de adequação de perfis para funções (0-100%)
 const ROLE_FIT_MATRIX: Record<string, Record<string, { fit: number; reason: string }>> = {
   'SDR': {
-    'DI': { fit: 95, reason: 'Perfil ideal: combina assertividade (D) com habilidade social (I), essencial para prospecção ativa e construção de relacionamentos iniciais.' },
-    'ID': { fit: 90, reason: 'Excelente para networking e geração de leads. Alta capacidade de engajamento com prospects.' },
-    'D': { fit: 85, reason: 'Foco em resultados e persistência, mas pode precisar desenvolver empatia e escuta ativa.' },
-    'I': { fit: 80, reason: 'Natural em comunicação, mas pode precisar de mais estrutura e disciplina em follow-ups.' },
-    'IS': { fit: 60, reason: 'Boa comunicação, mas pode ter dificuldade com rejeição e necessita de scripts claros.' },
+    'DC': { fit: 95, reason: 'Perfil ideal: combina assertividade (D) com disciplina em processos (C), essencial para prospecção estruturada.' },
+    'CD': { fit: 90, reason: 'Excelente em follow-up disciplinado. Alta atenção a processos e consistência.' },
+    'D': { fit: 75, reason: 'Forte em persistência, mas precisa desenvolver disciplina em CRM e scripts.' },
+    'C': { fit: 70, reason: 'Metódico e estruturado, mas precisa desenvolver assertividade para lidar com rejeição.' },
+    'DI': { fit: 70, reason: 'Assertivo e comunicativo, mas pode faltar conformidade com processos. Requer treinamento em sistemas.' },
+    'ID': { fit: 65, reason: 'Excelente em networking inicial, mas precisa desenvolver disciplina operacional e follow-up estruturado.' },
+    'I': { fit: 60, reason: 'Natural em comunicação, mas falta estrutura e disciplina em follow-ups.' },
+    'IS': { fit: 55, reason: 'Boa comunicação, mas pode ter dificuldade com rejeição e necessita de scripts claros.' },
     'DS': { fit: 55, reason: 'Pode atuar em SDR consultivo de ciclo médio, mas requer treinamento em soft skills.' },
-    'DC': { fit: 50, reason: 'Perfil muito analítico e direto para prospecção. Pode funcionar em outbound técnico B2B.' },
-    'SC': { fit: 35, reason: 'Baixa assertividade e influência social dificultam prospecção ativa. Melhor em inbound ou suporte.' },
-    'S': { fit: 30, reason: 'Evita confronto e pressão. Não é indicado para SDR sem desenvolvimento significativo.' },
-    'C': { fit: 25, reason: 'Perfil muito técnico e introspectivo para prospecção. Melhor em análise ou processos.' },
-    'CS': { fit: 30, reason: 'Combina introversão com evitação de conflitos. Não recomendado para prospecção ativa.' },
-    'CD': { fit: 40, reason: 'Pode atuar em SDR técnico com scripts, mas requer supervisão constante.' }
+    'SC': { fit: 50, reason: 'Alta conformidade mas baixa assertividade. Pode funcionar em inbound estruturado.' },
+    'CS': { fit: 45, reason: 'Combina introversão com evitação de conflitos. Melhor em suporte ou análise.' },
+    'S': { fit: 30, reason: 'Evita confronto e pressão. Não é indicado para SDR sem desenvolvimento significativo.' }
   },
   'Closer': {
-    'D': { fit: 95, reason: 'Perfil ideal: foco extremo em resultados, habilidade de fechar negócios e superar objeções.' },
-    'DC': { fit: 90, reason: 'Combina assertividade com análise. Excelente para vendas complexas e técnicas.' },
-    'DI': { fit: 88, reason: 'Assertivo e carismático. Ótimo para fechar com persuasão e construção de relacionamento.' },
+    'DI': { fit: 95, reason: 'Perfil ideal: combina assertividade para fechar com carisma para construir rapport. Excelente em vendas consultivas.' },
+    'ID': { fit: 90, reason: 'Influência social alta + foco em resultado. Perfeito para vendas relacionais e Social Selling.' },
+    'D': { fit: 88, reason: 'Foco extremo em resultados, habilidade de fechar negócios e superar objeções.' },
+    'DC': { fit: 85, reason: 'Assertivo com análise. Excelente para vendas complexas B2B de alto ticket.' },
     'I': { fit: 70, reason: 'Forte em rapport, mas pode hesitar no fechamento. Precisa desenvolver assertividade.' },
-    'ID': { fit: 75, reason: 'Equilibra influência social com foco em resultado. Bom para consultivo.' },
     'IS': { fit: 55, reason: 'Pode fechar vendas relacionais, mas evita pressão e objeções diretas.' },
     'CD': { fit: 65, reason: 'Bom para vendas técnicas de alto valor. Precisa ganhar confiança em negociação.' },
     'SC': { fit: 40, reason: 'Evita confronto e pressão. Não recomendado para closer sem 6+ meses de desenvolvimento.' },
@@ -1908,7 +1908,7 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   } else if (['S', 'IS', 'SI'].includes(combinedProfile)) {
     highlyCompatible = ['Customer Success', 'Suporte', 'Inside Sales'];
   } else if (['C', 'SC', 'CS'].includes(combinedProfile)) {
-    highlyCompatible = ['SDR', 'Analista de Processos', 'Operações'];
+    highlyCompatible = ['Analista de Processos', 'Operações', 'Suporte Técnico'];
   }
   
   highlyCompatible.forEach(func => {
