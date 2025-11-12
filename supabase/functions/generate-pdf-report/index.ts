@@ -307,14 +307,16 @@ const generateHiringConclusion = (
   }).join(' e ');
   
   let idealRole = 'Closer';
-  if (['D', 'DC', 'CD', 'DI'].includes(combinedProfile)) {
+  if (['D', 'DC', 'CD'].includes(combinedProfile)) {
     idealRole = naturalD > 30 && naturalC > 20 ? 'Head Comercial' : 'Gestor Comercial';
-  } else if (['I', 'ID', 'DI'].includes(combinedProfile)) {
-    idealRole = 'SDR';
+  } else if (['DI', 'ID'].includes(combinedProfile)) {
+    idealRole = 'Closer'; // ID/DI são melhores como Closer, não SDR
+  } else if (['I'].includes(combinedProfile)) {
+    idealRole = 'Social Selling';
+  } else if (['DC', 'CD', 'C'].includes(combinedProfile)) {
+    idealRole = 'SDR'; // Perfis com C alto são melhores para SDR
   } else if (['S', 'SC', 'CS', 'IS'].includes(combinedProfile)) {
-    idealRole = 'Suporte/Customer Success';
-  } else if (['C', 'CD', 'DC'].includes(combinedProfile)) {
-    idealRole = 'Analista de Processos';
+    idealRole = 'Customer Success';
   }
   
   const canStartNow = tensionLevel === 'low' ? 'Sim' : tensionLevel === 'moderate' ? 'Sim, com ressalvas' : 'Requer avaliação detalhada';
@@ -793,11 +795,24 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
     doc.setFont('helvetica', weight);
     doc.setFontSize(size);
     doc.setTextColor(...SITE_COLORS.textDark);
-    const lines = wrapText(text, contentWidth);
-    lines.forEach((line: string) => {
-      checkPageBreak(8);
-      doc.text(line, margin, yPos);
-      yPos += 6;
+    
+    // Primeiro dividir por quebras de linha
+    const paragraphs = text.split('\n');
+    
+    paragraphs.forEach((paragraph: string) => {
+      if (paragraph.trim() === '') {
+        // Linha vazia = espaçamento
+        yPos += 4;
+        return;
+      }
+      
+      // Aplicar wrap em cada parágrafo
+      const lines = wrapText(paragraph, contentWidth);
+      lines.forEach((line: string) => {
+        checkPageBreak(8);
+        doc.text(line, margin, yPos);
+        yPos += 6;
+      });
     });
   };
 
@@ -1884,14 +1899,16 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   doc.setTextColor(...SITE_COLORS.textDark);
   
   let highlyCompatible: string[] = [];
-  if (['D', 'DI', 'DC', 'CD'].includes(combinedProfile)) {
+  if (['D', 'DC', 'CD'].includes(combinedProfile)) {
     highlyCompatible = ['Closer', 'Gestor Comercial', 'Head Comercial'];
-  } else if (['I', 'ID', 'DI'].includes(combinedProfile)) {
-    highlyCompatible = ['SDR', 'Closer', 'Social Selling'];
+  } else if (['DI', 'ID'].includes(combinedProfile)) {
+    highlyCompatible = ['Closer', 'Social Selling', 'Account Executive'];
+  } else if (['I'].includes(combinedProfile)) {
+    highlyCompatible = ['Social Selling', 'Closer (com treinamento)', 'Marketing'];
   } else if (['S', 'IS', 'SI'].includes(combinedProfile)) {
     highlyCompatible = ['Customer Success', 'Suporte', 'Inside Sales'];
-  } else if (['C', 'SC', 'CS', 'CD', 'DC'].includes(combinedProfile)) {
-    highlyCompatible = ['Analista de Processos', 'Suporte Técnico', 'Operações'];
+  } else if (['C', 'SC', 'CS'].includes(combinedProfile)) {
+    highlyCompatible = ['SDR', 'Analista de Processos', 'Operações'];
   }
   
   highlyCompatible.forEach(func => {
@@ -1912,14 +1929,16 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   doc.setTextColor(...SITE_COLORS.textDark);
   
   let requiresSupport: string[] = [];
-  if (['D', 'DI', 'DC', 'CD'].includes(combinedProfile)) {
+  if (['D', 'DC', 'CD'].includes(combinedProfile)) {
     requiresSupport = ['Suporte (baixa empatia natural)', 'Funções operacionais repetitivas'];
-  } else if (['I', 'ID'].includes(combinedProfile)) {
-    requiresSupport = ['Closer (foco em processo)', 'Análise e planejamento'];
+  } else if (['DI', 'ID'].includes(combinedProfile)) {
+    requiresSupport = ['SDR (falta disciplina em processos)', 'Análise e planejamento'];
+  } else if (['I'].includes(combinedProfile)) {
+    requiresSupport = ['SDR (dispersão e falta de foco)', 'Gestão de processos'];
   } else if (['S', 'IS', 'SI'].includes(combinedProfile)) {
     requiresSupport = ['SDR (pressão e rejeição)', 'Liderança comercial'];
   } else if (['C', 'SC', 'CS'].includes(combinedProfile)) {
-    requiresSupport = ['SDR (improviso)', 'Vendas consultivas'];
+    requiresSupport = ['Closer (hesitação no fechamento)', 'Liderança comercial'];
   }
   
   requiresSupport.forEach(func => {
