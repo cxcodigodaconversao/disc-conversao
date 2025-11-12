@@ -236,11 +236,19 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
 
   // Helper functions
   const addPage = () => {
+    // Preservar estado da fonte antes de adicionar página
+    const currentFont = doc.getFont();
+    const currentFontSize = doc.getFontSize();
+    
     doc.addPage();
     currentPage++;
     addHeader();
     addFooter();
     yPos = margin + 15;
+    
+    // Restaurar estado da fonte
+    doc.setFont(currentFont.fontName, currentFont.fontStyle);
+    doc.setFontSize(currentFontSize);
   };
 
   const addHeader = () => {
@@ -496,14 +504,29 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     });
   };
 
+  // Mapeamento de competências para português
+  const COMPETENCY_TRANSLATIONS: Record<string, string> = {
+    'COMMAND': 'Comando',
+    'BOLDNESS': 'Ousadia',
+    'DETAIL': 'Atenção aos Detalhes',
+    'PRUDENCE': 'Prudência',
+    'EMPATHY': 'Empatia',
+    'PATIENCE': 'Paciência',
+    'PLANNING': 'Planejamento',
+    'ENTHUSIASM': 'Entusiasmo'
+  };
+
   const drawCompetenciesBar = (competenciesObj: any, x: number, y: number, width: number, height: number) => {
     const entries = Object.entries(competenciesObj)
       .filter(([key]) => key.endsWith('_n'))
       .slice(0, 8)
-      .map(([key, value]) => ({
-        name: key.replace(/_n$/, '').replace(/_/g, ' ').toUpperCase(),
-        value: value as number
-      }))
+      .map(([key, value]) => {
+        const keyName = key.replace(/_n$/, '').replace(/_/g, ' ').toUpperCase();
+        return {
+          name: COMPETENCY_TRANSLATIONS[keyName] || keyName,
+          value: value as number
+        };
+      })
       .sort((a, b) => b.value - a.value);
 
     const barHeight = 10;
@@ -732,9 +755,16 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
   const naturalValues = [result.natural_d, result.natural_i, result.natural_s, result.natural_c];
   const adaptedValues = [result.adapted_d, result.adapted_i, result.adapted_s, result.adapted_c];
   
-  checkPageBreak(120);
+  checkPageBreak(130);
   drawDISCChart(naturalValues, adaptedValues, margin, yPos, contentWidth, 100);
   yPos += 110;
+  
+  // Adicionar legenda para o gráfico DISC
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...SITE_COLORS.textMuted);
+  doc.text('Alto (>30): Característica dominante | Médio (15-30): Característica moderada | Baixo (<15): Característica menos presente', margin, yPos);
+  yPos += 10;
 
   addSubtitle('Interpretação dos Resultados');
   addText('Os gráficos acima mostram sua pontuação em cada fator DISC (escala de 0 a 40). Valores acima de 30 indicam alta intensidade, entre 15-30 intensidade média, e abaixo de 15 baixa intensidade.');
@@ -1221,9 +1251,16 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     addText('A teoria de valores identifica seis dimensões principais que motivam comportamentos e decisões. Seus resultados indicam suas prioridades e o que mais lhe motiva profissionalmente.');
     yPos += 10;
 
-    checkPageBreak(120);
+    checkPageBreak(140);
     drawValuesRadar(result.values_scores, margin, yPos, contentWidth);
     yPos += 130;
+    
+    // Adicionar legenda para o gráfico de valores
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...SITE_COLORS.textMuted);
+    doc.text('Escala: 0-60 | Alto (>45) | Médio (25-45) | Baixo (<25)', margin, yPos);
+    yPos += 10;
 
     addSubtitle('Interpretação dos Valores');
     
@@ -1307,9 +1344,16 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     addText('A análise de liderança identifica seus estilos predominantes ao liderar equipes e projetos.');
     yPos += 10;
 
-    checkPageBreak(100);
+    checkPageBreak(110);
     drawLeadershipPie(result.leadership_style, margin, yPos, 40);
     yPos += 100;
+    
+    // Adicionar nota sobre o gráfico
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...SITE_COLORS.textMuted);
+    doc.text('Os percentuais mostram a distribuição dos seus estilos de liderança predominantes', margin, yPos);
+    yPos += 10;
 
     addSubtitle('Descrição dos Estilos');
 
@@ -1344,14 +1388,45 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     addSectionTitle('MAPA DE COMPETÊNCIAS');
 
     addText('O mapeamento de competências identifica suas principais habilidades e áreas de desenvolvimento.');
-    yPos += 10;
+    yPos += 8;
+    
+    // Explicação das competências
+    addSubtitle('Dimensões Avaliadas:');
+    yPos += 3;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...SITE_COLORS.textDark);
+    
+    const competencyExplanations = [
+      '• Comando: Capacidade de liderar e tomar decisões',
+      '• Ousadia: Disposição para assumir riscos calculados',
+      '• Atenção aos Detalhes: Precisão e cuidado com minúcias',
+      '• Prudência: Cautela e planejamento antes de agir',
+      '• Empatia: Sensibilidade às necessidades dos outros',
+      '• Paciência: Tolerância a processos longos e repetitivos',
+      '• Planejamento: Organização e estruturação de tarefas',
+      '• Entusiasmo: Energia e motivação para engajar outros'
+    ];
+    
+    competencyExplanations.forEach(exp => {
+      checkPageBreak(5);
+      doc.text(exp, margin + 3, yPos);
+      yPos += 5;
+    });
+    
+    yPos += 5;
 
-    checkPageBreak(120);
+    checkPageBreak(130);
     drawCompetenciesBar(result.competencies, margin, yPos, contentWidth, 110);
     yPos += 120;
-
-    addSubtitle('Interpretação');
-    addText('Competências acima de 30 pontos indicam pontos fortes. Entre 15-30 são áreas de desenvolvimento. Abaixo de 15 requerem atenção especial se forem relevantes para sua função.');
+    
+    // Adicionar legenda para o gráfico de competências
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...SITE_COLORS.textMuted);
+    doc.text('Alto (>30): Ponto forte | Médio (15-30): Desenvolvimento | Baixo (<15): Atenção especial', margin, yPos);
+    yPos += 10;
   }
 
   // ========== ANÁLISE PARA CONTRATAÇÃO ==========
@@ -1566,6 +1641,143 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
   doc.setTextColor(...SITE_COLORS.textDark);
   addText(conclusion);
   yPos += 10;
+  
+  // ========== ADEQUAÇÃO DO PERFIL ÀS FUNÇÕES COMERCIAIS ==========
+  checkPageBreak(100);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...SITE_COLORS.primary);
+  doc.text('ADEQUAÇÃO DO PERFIL ÀS FUNÇÕES COMERCIAIS', margin, yPos);
+  yPos += 10;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textMedium);
+  addText(`Baseado no perfil ${combinedProfile} identificado:`);
+  yPos += 10;
+  
+  // Funções altamente compatíveis
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(92, 184, 92); // Verde
+  doc.text('✅ FUNÇÕES ALTAMENTE COMPATÍVEIS', margin + 3, yPos);
+  yPos += 8;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  
+  let highlyCompatible: string[] = [];
+  if (['D', 'DI', 'DC', 'CD'].includes(combinedProfile)) {
+    highlyCompatible = ['Closer', 'Gestor Comercial', 'Head Comercial'];
+  } else if (['I', 'ID', 'DI'].includes(combinedProfile)) {
+    highlyCompatible = ['SDR', 'Closer', 'Social Selling'];
+  } else if (['S', 'IS', 'SI'].includes(combinedProfile)) {
+    highlyCompatible = ['Customer Success', 'Suporte', 'Inside Sales'];
+  } else if (['C', 'SC', 'CS', 'CD', 'DC'].includes(combinedProfile)) {
+    highlyCompatible = ['Analista de Processos', 'Suporte Técnico', 'Operações'];
+  }
+  
+  highlyCompatible.forEach(func => {
+    doc.text(`• ${func}`, margin + 8, yPos);
+    yPos += 6;
+  });
+  yPos += 5;
+  
+  // Funções que requerem acompanhamento
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(240, 173, 78); // Laranja
+  doc.text('⚠️ FUNÇÕES QUE REQUEREM ACOMPANHAMENTO', margin + 3, yPos);
+  yPos += 8;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  
+  let requiresSupport: string[] = [];
+  if (['D', 'DI', 'DC', 'CD'].includes(combinedProfile)) {
+    requiresSupport = ['Suporte (baixa empatia natural)', 'Funções operacionais repetitivas'];
+  } else if (['I', 'ID'].includes(combinedProfile)) {
+    requiresSupport = ['Closer (foco em processo)', 'Análise e planejamento'];
+  } else if (['S', 'IS', 'SI'].includes(combinedProfile)) {
+    requiresSupport = ['SDR (pressão e rejeição)', 'Liderança comercial'];
+  } else if (['C', 'SC', 'CS'].includes(combinedProfile)) {
+    requiresSupport = ['SDR (improviso)', 'Vendas consultivas'];
+  }
+  
+  requiresSupport.forEach(func => {
+    doc.text(`• ${func}`, margin + 8, yPos);
+    yPos += 6;
+  });
+  yPos += 5;
+  
+  // Funções não recomendadas
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(217, 83, 79); // Vermelho
+  doc.text('🚫 NÃO RECOMENDADO (sem desenvolvimento prévio)', margin + 3, yPos);
+  yPos += 8;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  
+  let notRecommended: string[] = [];
+  if (['D', 'DC', 'CD'].includes(combinedProfile)) {
+    notRecommended = ['Atendimento ao cliente de longo prazo'];
+  } else if (['I'].includes(combinedProfile)) {
+    notRecommended = ['Controle de qualidade', 'Análise de dados'];
+  } else if (['S'].includes(combinedProfile)) {
+    notRecommended = ['Prospecção agressiva'];
+  } else if (['C'].includes(combinedProfile)) {
+    notRecommended = ['Vendas de improviso'];
+  }
+  
+  if (notRecommended.length > 0) {
+    notRecommended.forEach(func => {
+      doc.text(`• ${func}`, margin + 8, yPos);
+      yPos += 6;
+    });
+  } else {
+    doc.text('• Nenhuma restrição significativa identificada', margin + 8, yPos);
+    yPos += 6;
+  }
+  yPos += 8;
+  
+  // Riscos potenciais
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.info);
+  doc.text('RISCOS POTENCIAIS', margin + 3, yPos);
+  yPos += 8;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  
+  const risks: string[] = [];
+  if (result.tension_level === 'high') {
+    risks.push('Alto nível de tensão pode levar a desgaste e burnout');
+  } else if (result.tension_level === 'moderate') {
+    risks.push('Tensão moderada requer monitoramento periódico');
+  }
+  
+  if (result.natural_d < 10) risks.push('Dificuldade em tomada de decisão rápida sob pressão');
+  if (result.natural_i < 10) risks.push('Desconforto em networking e comunicação persuasiva');
+  if (result.natural_s < 10) risks.push('Impaciência com processos longos e repetitivos');
+  if (result.natural_c < 10) risks.push('Falta de atenção a detalhes e processos');
+  
+  if (risks.length > 0) {
+    risks.forEach(risk => {
+      doc.text(`• ${risk}`, margin + 8, yPos);
+      yPos += 6;
+    });
+  } else {
+    doc.text('• Perfil equilibrado sem riscos críticos identificados', margin + 8, yPos);
+    yPos += 6;
+  }
+  yPos += 10;
 
   // ========== PÁGINA 18: COMUNICAÇÃO ==========
   addPage();
@@ -1679,46 +1891,111 @@ async function generatePDFDocument(assessment: any, result: any): Promise<Uint8A
     yPos += 8;
   });
 
-  // ========== PÁGINA 20: CONSIDERAÇÕES FINAIS ==========
+  // ========== PÁGINA 20: CONSIDERAÇÕES FINAIS (VERSÃO GERENCIAL) ==========
   addPage();
   addSectionTitle('CONSIDERAÇÕES FINAIS');
 
-  addText('Este relatório representa uma análise abrangente do seu perfil comportamental, motivacional e de competências. Lembre-se de que:');
-  yPos += 5;
+  addText('Este relatório é uma ferramenta de análise comportamental, voltada para apoiar decisões estratégicas de contratação, realocação e desenvolvimento de talentos.');
+  yPos += 8;
+  
+  addSubtitle('Lembre-se:');
+  yPos += 3;
 
   const finalPoints = [
-    'Este relatório é uma ferramenta de autoconhecimento, não uma limitação. Você pode desenvolver qualquer competência com prática e dedicação.',
-    'Não existe perfil "melhor" ou "pior" - cada estilo tem seus pontos fortes únicos e contribuições valiosas.',
-    'O ambiente e o contexto influenciam comportamento. É natural adaptar-se, mas importante manter equilíbrio.',
-    'Use este relatório como ponto de partida para conversas com mentores, gestores e coaches sobre seu desenvolvimento.',
-    'Revise seus resultados periodicamente - autoconhecimento é uma jornada contínua, não um destino.'
+    'Este relatório não determina valor profissional, mas revela tendências comportamentais úteis para identificar adequação de perfil à função.',
+    'Um bom desempenho depende da combinação entre perfil, ambiente e capacitação. Mesmo perfis "não ideais" podem performar com o suporte e as estratégias corretas.',
+    'Avalie níveis de tensão entre perfil natural e adaptado — altas distorções indicam desgaste e possível desalinhamento com a função atual ou com a cultura do time.',
+    'O perfil apresentado pode ser desenvolvido. Nenhuma habilidade é estática quando há clareza, treinamento e acompanhamento.',
+    'Use este relatório para alinhar expectativas de desempenho, estilo de liderança necessário e estratégia de onboarding.'
   ];
 
   finalPoints.forEach(p => addBulletPoint(p));
 
   yPos += 10;
   addSubtitle('Próximos Passos Recomendados');
+  yPos += 3;
 
   const nextSteps = [
-    'Agende uma conversa com seu gestor para discutir os insights deste relatório',
-    'Identifique um mentor ou coach para apoiar seu desenvolvimento',
-    'Crie metas específicas de desenvolvimento para os próximos 3-6 meses',
-    'Busque feedback de colegas sobre como percebem seus pontos fortes e áreas de melhoria',
-    'Considere fazer uma nova avaliação em 12 meses para acompanhar sua evolução'
+    'Agende uma conversa com o candidato para validar insights e expectativas',
+    'Identifique necessidades de capacitação ou onboarding específico',
+    'Defina métricas de performance alinhadas ao perfil nos primeiros 90 dias',
+    'Busque feedback de líderes diretos sobre alinhamento cultural',
+    'Considere reavaliação em 6-12 meses para acompanhar evolução'
   ];
 
   nextSteps.forEach(s => addBulletPoint(s));
-
-  yPos += 15;
+  
+  yPos += 10;
+  
+  // ========== DECISÃO DO GESTOR ==========
+  checkPageBreak(80);
+  addSubtitle('DECISÃO DO GESTOR/RH');
+  yPos += 5;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  
+  // Data da avaliação
+  const today = new Date();
+  const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+  doc.text(`Data da Avaliação: ${formattedDate}`, margin, yPos);
+  yPos += 8;
+  
+  doc.text('Avaliado por: ___________________________________', margin, yPos);
+  yPos += 12;
+  
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(...SITE_COLORS.primary);
-  const finalText = 'Obrigado por completar o DISC da Conversão. Desejamos sucesso em sua jornada de desenvolvimento!';
-  const finalLines = wrapText(finalText, contentWidth);
-  finalLines.forEach((line: string) => {
-    doc.text(line, pageWidth / 2, yPos, { align: 'center' });
+  doc.setFontSize(11);
+  doc.text('PARECER FINAL:', margin, yPos);
+  yPos += 7;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  const decisions = [
+    '☐ Aprovado para a função __________________________',
+    '☐ Aprovado com ressalvas (especificar abaixo)',
+    '☐ Necessita desenvolvimento antes da contratação',
+    '☐ Perfil não adequado para a vaga atual'
+  ];
+  
+  decisions.forEach(d => {
+    doc.text(d, margin + 5, yPos);
     yPos += 7;
   });
+  
+  yPos += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.text('OBSERVAÇÕES E JUSTIFICATIVAS:', margin, yPos);
+  yPos += 7;
+  
+  doc.setFont('helvetica', 'normal');
+  for (let i = 0; i < 3; i++) {
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 7;
+  }
+  
+  yPos += 5;
+  doc.setFont('helvetica', 'bold');
+  doc.text('PRÓXIMAS AÇÕES:', margin, yPos);
+  yPos += 7;
+  
+  doc.setFont('helvetica', 'normal');
+  const actions = [
+    '☐ Agendar entrevista técnica',
+    '☐ Solicitar referências profissionais',
+    '☐ Definir plano de onboarding personalizado',
+    '☐ Contratar imediatamente',
+    '☐ Incluir em banco de talentos para oportunidade futura'
+  ];
+  
+  actions.forEach(a => {
+    doc.text(a, margin + 5, yPos);
+    yPos += 6;
+  });
+  
+  yPos += 10;
+  doc.text('Assinatura: ____________________________  Data: ___/___/___', margin, yPos);
 
   addFooter();
 

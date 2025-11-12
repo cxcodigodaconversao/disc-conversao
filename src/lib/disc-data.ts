@@ -1185,6 +1185,26 @@ export const STRATEGIC_INTERPRETATIONS: Record<string, StrategicInterpretation> 
     limitations: 'Ritmo mais lento em prospecção ativa',
     hiringRecommendation: 'Excelente para gestão de contas e retenção'
   },
+  'DS': {
+    potential: 'Combina assertividade com empatia; lidera com firmeza e cuidado',
+    limitations: 'Pode hesitar entre agir rápido ou considerar impacto nas pessoas',
+    hiringRecommendation: 'Excelente para gestão comercial, liderança de equipes'
+  },
+  'SD': {
+    potential: 'Lealdade e persistência aliadas a foco em resultados',
+    limitations: 'Pode ter dificuldade em mudanças rápidas de estratégia',
+    hiringRecommendation: 'Ideal para gestão de contas estratégicas de longo prazo'
+  },
+  'IC': {
+    potential: 'Criatividade social com atenção a detalhes e qualidade',
+    limitations: 'Pode oscilar entre espontaneidade e perfeccionismo',
+    hiringRecommendation: 'Bom para marketing, conteúdo, projetos criativos estruturados'
+  },
+  'CI': {
+    potential: 'Precisão analítica com habilidade de comunicar resultados',
+    limitations: 'Pode demorar para agir aguardando análise perfeita',
+    hiringRecommendation: 'Ideal para consultoria técnica, apresentação de dados'
+  },
   'DC': {
     potential: 'Visão estratégica, foco em processos e resultados mensuráveis',
     limitations: 'Pouca adaptabilidade e baixa empatia natural',
@@ -1298,7 +1318,7 @@ export const getCombinedProfile = (naturalD: number, naturalI: number, naturalS:
   return scores[0].factor;
 };
 
-// Função para gerar conclusão automática
+// Função para gerar conclusão automática melhorada
 export const generateHiringConclusion = (
   combinedProfile: string,
   naturalD: number,
@@ -1320,11 +1340,72 @@ export const generateHiringConclusion = (
     }
   }).join(' e ');
   
-  const tensionText = tensionLevel === 'high' 
-    ? 'Alta tensão entre perfil natural e adaptado sugere ambiente de pressão. Requer monitoramento de bem-estar.' 
-    : tensionLevel === 'moderate'
-    ? 'Tensão moderada indica adaptação controlada ao ambiente.'
-    : 'Baixa tensão indica alinhamento entre perfil natural e demandas do ambiente.';
+  // Determinar cargo ideal baseado no perfil
+  let idealRole = 'Closer';
+  if (['D', 'DC', 'CD', 'DI'].includes(combinedProfile)) {
+    idealRole = naturalD > 30 && naturalC > 20 ? 'Head Comercial' : 'Gestor Comercial';
+  } else if (['I', 'ID', 'DI'].includes(combinedProfile)) {
+    idealRole = 'SDR';
+  } else if (['S', 'SC', 'CS', 'IS'].includes(combinedProfile)) {
+    idealRole = 'Suporte/Customer Success';
+  } else if (['C', 'CD', 'DC'].includes(combinedProfile)) {
+    idealRole = 'Analista de Processos';
+  }
   
-  return `O perfil identificado é ${combinedProfile}, com energia voltada a ${dominantTraits}. ${interpretation.hiringRecommendation} ${tensionText} Recomenda-se acompanhamento nos primeiros 90 dias com metas curtas e feedback semanal.`;
+  // Determinar se pode assumir imediatamente
+  const canStartNow = tensionLevel === 'low' ? 'Sim' : tensionLevel === 'moderate' ? 'Sim, com ressalvas' : 'Requer avaliação detalhada';
+  
+  // Tempo de desenvolvimento estimado
+  let devTime = 'Imediato';
+  if (tensionLevel === 'high') {
+    devTime = '90 dias com acompanhamento próximo';
+  } else if (tensionLevel === 'moderate') {
+    devTime = '30 dias com onboarding estruturado';
+  }
+  
+  // Tipo de suporte necessário
+  let supportType = 'Autonomia com check-ins semanais';
+  if (naturalD < 15 && naturalI < 15) {
+    supportType = 'Mentoria próxima com scripts e processos claros';
+  } else if (naturalD > 30 && naturalC < 15) {
+    supportType = 'Supervisão para garantir seguimento de processos';
+  } else if (tensionLevel === 'high') {
+    supportType = 'Acompanhamento diário nas primeiras 4 semanas';
+  }
+  
+  // Interpretar tensão
+  const tensionText = tensionLevel === 'high' 
+    ? 'ALTA - Ambiente exige adaptação significativa. Risco de burnout se não houver suporte adequado. Monitorar bem-estar semanalmente.' 
+    : tensionLevel === 'moderate'
+    ? 'MODERADA - Adaptação controlada. Candidato está ajustando comportamento de forma sustentável.'
+    : 'BAIXA - Excelente alinhamento entre perfil natural e demandas da função. Candidato pode performar com autenticidade.';
+  
+  // Plano de 90 dias
+  let plan90Days = '';
+  if (naturalD > 25) {
+    plan90Days = 'Semanas 1-4: Imersão em processos e cultura. | Semanas 5-8: Assumir primeiras metas individuais. | Semanas 9-12: Avaliar performance e ajustar estilo de liderança.';
+  } else if (naturalI > 25) {
+    plan90Days = 'Semanas 1-4: Treinamento em técnicas de comunicação e scripts. | Semanas 5-8: Praticar abordagem com supervisão. | Semanas 9-12: Atuar com autonomia e medir conversão.';
+  } else if (naturalS > 25) {
+    plan90Days = 'Semanas 1-4: Conhecer processos e ferramentas. | Semanas 5-8: Desenvolver consistência no atendimento. | Semanas 9-12: Buscar feedback e identificar melhorias contínuas.';
+  } else if (naturalC > 25) {
+    plan90Days = 'Semanas 1-4: Dominar sistemas e métricas. | Semanas 5-8: Praticar decisão rápida com dados. | Semanas 9-12: Aumentar velocidade mantendo qualidade.';
+  } else {
+    plan90Days = 'Semanas 1-4: Imersão na cultura e expectativas. | Semanas 5-8: Desenvolver competências-chave identificadas. | Semanas 9-12: Avaliação de fit e ajustes.';
+  }
+  
+  return `O perfil identificado é ${combinedProfile}, com energia voltada a ${dominantTraits}.
+
+RECOMENDAÇÃO PARA CONTRATAÇÃO:
+• CARGO IDEAL: ${idealRole}
+• PODE ASSUMIR HOJE: ${canStartNow}
+• TEMPO DE DESENVOLVIMENTO ESTIMADO: ${devTime}
+• TIPO DE SUPORTE NECESSÁRIO: ${supportType}
+
+NÍVEL DE TENSÃO: ${tensionText}
+
+PLANO DE 90 DIAS:
+${plan90Days}
+
+CONCLUSÃO: ${interpretation.hiringRecommendation}`;
 };
