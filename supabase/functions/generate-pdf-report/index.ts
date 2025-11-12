@@ -393,6 +393,102 @@ CONCLUSÃO: ${interpretation.hiringRecommendation}`;
 };
 
 const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8Array> => {
+  // Inicializar documento PDF
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // Cores do site
+  const SITE_COLORS = {
+    primary: [91, 192, 222] as [number, number, number],
+    secondary: [92, 184, 92] as [number, number, number],
+    info: [91, 192, 222] as [number, number, number],
+    success: [92, 184, 92] as [number, number, number],
+    warning: [240, 173, 78] as [number, number, number],
+    danger: [217, 83, 79] as [number, number, number],
+    textDark: [51, 51, 51] as [number, number, number],
+    textMedium: [102, 102, 102] as [number, number, number],
+    textMuted: [153, 153, 153] as [number, number, number],
+    discD: [217, 83, 79] as [number, number, number],
+    discI: [240, 173, 78] as [number, number, number],
+    discS: [92, 184, 92] as [number, number, number],
+    discC: [91, 192, 222] as [number, number, number]
+  };
+
+  // Variáveis de layout
+  const margin = 20;
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const contentWidth = pageWidth - 2 * margin;
+  let yPos = margin;
+  let pageNumber = 1;
+
+  // Função para quebrar texto em linhas
+  const wrapText = (text: string, maxWidth: number): string[] => {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    words.forEach(word => {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const lineWidth = doc.getTextWidth(testLine);
+      
+      if (lineWidth > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    });
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    return lines;
+  };
+
+  // Funções de cabeçalho e rodapé
+  const addHeader = () => {
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, 15, pageWidth - margin, 15);
+  };
+
+  const addFooter = () => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...SITE_COLORS.textMuted);
+    doc.text(`Página ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text('DISC da CONVERSÃO - Relatório Confidencial', margin, pageHeight - 10);
+  };
+
+  // Função para adicionar nova página
+  const addPage = () => {
+    const currentFont = doc.getFont();
+    const currentFontSize = doc.getFontSize();
+    
+    doc.addPage();
+    pageNumber++;
+    yPos = margin;
+    
+    // Restaurar estado da fonte
+    doc.setFont(currentFont.fontName, currentFont.fontStyle);
+    doc.setFontSize(currentFontSize);
+    
+    addHeader();
+    addFooter();
+  };
+
+  // Função para verificar quebra de página
+  const checkPageBreak = (spaceNeeded: number) => {
+    if (yPos + spaceNeeded > pageHeight - 25) {
+      addPage();
+    }
+  };
+
   // Drawing functions for charts
   const drawDISCChart = (
     naturalArr: number[],
