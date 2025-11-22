@@ -778,7 +778,7 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
     doc.text(title, margin, yPos);
     doc.setDrawColor(...SITE_COLORS.primary);
     doc.setLineWidth(0.8);
-    doc.line(margin, yPos + 3, margin + 70, yPos + 3);
+    doc.line(margin, yPos + 3, margin + (contentWidth * 0.4), yPos + 3);
     yPos += 15;
   };
 
@@ -1747,15 +1747,12 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
     doc.text(`Indicados: ${mapping.mostIndicated.join(', ')}`, margin + 8, yPos);
     yPos += 4;
     doc.text(`Adaptação: ${mapping.requiresAdaptation.join(', ')}`, margin + 8, yPos);
-    yPos += 4;
+    yPos += 5;
     
+    doc.setFontSize(8);
     doc.setTextColor(...SITE_COLORS.textMedium);
-    const devLines = doc.splitTextToSize(mapping.developmentRecommendations, contentWidth - 8);
-    devLines.forEach((line: string) => {
-      doc.text(line, margin + 8, yPos);
-      yPos += 4;
-    });
-    yPos += 4;
+    addText(mapping.developmentRecommendations);
+    yPos += 6;
   });
 
   checkPageBreak(60);
@@ -1777,31 +1774,40 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   yPos += 8;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.primary);
   doc.text('Potencial:', margin + 3, yPos);
-  yPos += 5;
+  yPos += 7;
+  
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(9);
+  doc.setTextColor(...SITE_COLORS.textDark);
   addText(interpretation.potential);
-  yPos += 2;
+  yPos += 6;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('Limites:', margin + 3, yPos);
-  yPos += 5;
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.warning);
+  doc.text('Limitações:', margin + 3, yPos);
+  yPos += 7;
+  
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(9);
+  doc.setTextColor(...SITE_COLORS.textDark);
   addText(interpretation.limitations);
-  yPos += 2;
+  yPos += 6;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('Sugestão:', margin + 3, yPos);
-  yPos += 5;
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.success);
+  doc.text('Recomendação:', margin + 3, yPos);
+  yPos += 7;
+  
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(9);
+  doc.setTextColor(...SITE_COLORS.textDark);
   addText(interpretation.hiringRecommendation);
-  yPos += 8;
+  yPos += 10;
 
   // 4. MATRIZ DE DECISÃO
   checkPageBreak(60);
@@ -1873,6 +1879,147 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   addText(conclusion);
   yPos += 10;
   
+  // Calcular highlyCompatible antes para uso no resumo
+  let highlyCompatible: string[] = [];
+  if (['D', 'DC', 'CD'].includes(combinedProfile)) {
+    highlyCompatible = ['Closer', 'Gestor Comercial', 'Head Comercial'];
+  } else if (['DI', 'ID'].includes(combinedProfile)) {
+    highlyCompatible = ['Closer', 'Social Selling', 'Account Executive'];
+  } else if (['I'].includes(combinedProfile)) {
+    highlyCompatible = ['Social Selling', 'Closer (com treinamento)', 'Marketing'];
+  } else if (['S', 'IS', 'SI'].includes(combinedProfile)) {
+    highlyCompatible = ['Customer Success', 'Suporte', 'Inside Sales'];
+  } else if (['C', 'SC', 'CS'].includes(combinedProfile)) {
+    highlyCompatible = ['Analista de Processos', 'Operações', 'Suporte Técnico'];
+  }
+  
+  // ========== RESUMO EXECUTIVO PARA CONTRATAÇÃO ==========
+  checkPageBreak(180);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(...SITE_COLORS.primary);
+  doc.text('RESUMO EXECUTIVO PARA CONTRATAÇÃO', margin, yPos);
+  yPos += 12;
+
+  // Box de destaque
+  const boxStartY = yPos;
+  doc.setDrawColor(...SITE_COLORS.primary);
+  doc.setFillColor(250, 250, 250);
+  doc.setLineWidth(1);
+  doc.roundedRect(margin, yPos, contentWidth, 70, 3, 3, 'FD');
+  yPos += 8;
+
+  // PERFIL IDENTIFICADO
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.textDark);
+  doc.text(`Perfil DISC Identificado: ${combinedProfile}`, margin + 5, yPos);
+  yPos += 10;
+
+  // ADEQUAÇÃO PARA CARGO ALVO
+  if (targetRole) {
+    const targetFit = ROLE_FIT_MATRIX[targetRole]?.[combinedProfile]?.fit || 50;
+    const fitColor = targetFit >= 75 ? SITE_COLORS.success : targetFit >= 60 ? SITE_COLORS.warning : SITE_COLORS.danger;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...fitColor);
+    doc.text(`Adequação para ${targetRole}: ${targetFit}%`, margin + 5, yPos);
+    yPos += 8;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...SITE_COLORS.textDark);
+    const fitReason = ROLE_FIT_MATRIX[targetRole]?.[combinedProfile]?.reason || '';
+    const reasonLines = doc.splitTextToSize(fitReason, contentWidth - 15);
+    reasonLines.forEach((line: string) => {
+      doc.text(line, margin + 5, yPos);
+      yPos += 4;
+    });
+    yPos += 5;
+  }
+
+  // Recomendação visual
+  let recommendation = '';
+  let recommendColor = SITE_COLORS.textDark;
+  
+  if (targetRole) {
+    const targetFit = ROLE_FIT_MATRIX[targetRole]?.[combinedProfile]?.fit || 50;
+    if (targetFit >= 75) {
+      recommendation = `RECOMENDADO para ${targetRole}`;
+      recommendColor = SITE_COLORS.success;
+    } else if (targetFit >= 60) {
+      recommendation = `RECOMENDADO COM DESENVOLVIMENTO para ${targetRole}`;
+      recommendColor = SITE_COLORS.warning;
+    } else {
+      recommendation = `CONSIDERAR OUTRAS FUNÇÕES - Adequação parcial para ${targetRole}`;
+      recommendColor = SITE_COLORS.danger;
+    }
+  } else {
+    recommendation = `Funções mais compatíveis: ${highlyCompatible.slice(0, 2).join(', ')}`;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...recommendColor);
+  const recLines = doc.splitTextToSize(recommendation, contentWidth - 15);
+  recLines.forEach((line: string) => {
+    doc.text(line, margin + 5, yPos);
+    yPos += 5;
+  });
+
+  yPos = boxStartY + 75;
+
+  // PONTOS FORTES
+  yPos += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.success);
+  doc.text('[+] PONTOS FORTES PARA O CARGO', margin, yPos);
+  yPos += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textDark);
+
+  const strengths: string[] = [];
+  if (result.natural_d > 25) strengths.push('Alta assertividade e foco em resultados');
+  if (result.natural_i > 25) strengths.push('Excelente comunicação e habilidade de networking');
+  if (result.natural_s > 25) strengths.push('Consistência, confiabilidade e trabalho em equipe');
+  if (result.natural_c > 25) strengths.push('Atenção a detalhes e disciplina em processos');
+  if (result.tension_level === 'low') strengths.push('Baixo desgaste comportamental - trabalha naturalmente');
+
+  strengths.slice(0, 3).forEach(s => {
+    doc.text(`• ${s}`, margin + 5, yPos);
+    yPos += 6;
+  });
+
+  // PONTOS DE ATENÇÃO
+  yPos += 6;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...SITE_COLORS.warning);
+  doc.text('[!] PONTOS DE ATENÇÃO CRÍTICOS', margin, yPos);
+  yPos += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...SITE_COLORS.textDark);
+
+  const attentions: string[] = [];
+  if (result.natural_d < 15) attentions.push('Pode ter dificuldade com decisões sob pressão');
+  if (result.natural_i < 15) attentions.push('Desconforto em networking e apresentações públicas');
+  if (result.natural_s < 15) attentions.push('Impaciência com processos longos e rotinas');
+  if (result.natural_c < 15) attentions.push('Necessita desenvolver atenção a detalhes e conformidade');
+  if (result.tension_level === 'high') attentions.push('Alto desgaste - perfil natural muito diferente do adaptado');
+
+  attentions.slice(0, 3).forEach(a => {
+    doc.text(`• ${a}`, margin + 5, yPos);
+    yPos += 6;
+  });
+
+  yPos += 12;
+  
   // ========== ADEQUAÇÃO DO PERFIL ÀS FUNÇÕES COMERCIAIS ==========
   checkPageBreak(100);
   doc.setFont('helvetica', 'bold');
@@ -1891,25 +2038,14 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(92, 184, 92); // Verde
-  doc.text('✅ FUNÇÕES ALTAMENTE COMPATÍVEIS', margin + 3, yPos);
+  doc.text('[+] FUNÇÕES ALTAMENTE COMPATÍVEIS', margin + 3, yPos);
   yPos += 8;
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(...SITE_COLORS.textDark);
   
-  let highlyCompatible: string[] = [];
-  if (['D', 'DC', 'CD'].includes(combinedProfile)) {
-    highlyCompatible = ['Closer', 'Gestor Comercial', 'Head Comercial'];
-  } else if (['DI', 'ID'].includes(combinedProfile)) {
-    highlyCompatible = ['Closer', 'Social Selling', 'Account Executive'];
-  } else if (['I'].includes(combinedProfile)) {
-    highlyCompatible = ['Social Selling', 'Closer (com treinamento)', 'Marketing'];
-  } else if (['S', 'IS', 'SI'].includes(combinedProfile)) {
-    highlyCompatible = ['Customer Success', 'Suporte', 'Inside Sales'];
-  } else if (['C', 'SC', 'CS'].includes(combinedProfile)) {
-    highlyCompatible = ['Analista de Processos', 'Operações', 'Suporte Técnico'];
-  }
+  // highlyCompatible já foi calculado anteriormente
   
   highlyCompatible.forEach(func => {
     doc.text(`• ${func}`, margin + 8, yPos);
@@ -1921,7 +2057,7 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(240, 173, 78); // Laranja
-  doc.text('⚠️ FUNÇÕES QUE REQUEREM ACOMPANHAMENTO', margin + 3, yPos);
+  doc.text('[!] FUNÇÕES QUE REQUEREM ACOMPANHAMENTO', margin + 3, yPos);
   yPos += 8;
   
   doc.setFont('helvetica', 'normal');
@@ -1951,7 +2087,7 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(217, 83, 79); // Vermelho
-  doc.text('🚫 NÃO RECOMENDADO (sem desenvolvimento prévio)', margin + 3, yPos);
+  doc.text('[-] NÃO RECOMENDADO (sem desenvolvimento prévio)', margin + 3, yPos);
   yPos += 8;
   
   doc.setFont('helvetica', 'normal');
@@ -2126,111 +2262,34 @@ const generatePDFDocument = async (assessment: any, result: any): Promise<Uint8A
     yPos += 8;
   });
 
-  // ========== PÁGINA 20: CONSIDERAÇÕES FINAIS (VERSÃO GERENCIAL) ==========
+  // ========== CONSIDERAÇÕES FINAIS ==========
   addPage();
   addSectionTitle('CONSIDERAÇÕES FINAIS');
 
-  addText('Este relatório é uma ferramenta de análise comportamental, voltada para apoiar decisões estratégicas de contratação, realocação e desenvolvimento de talentos.');
-  yPos += 8;
-  
-  addSubtitle('Lembre-se:');
+  addSubtitle('Sobre Este Relatório:');
   yPos += 3;
 
-  const finalPoints = [
-    'Este relatório não determina valor profissional, mas revela tendências comportamentais úteis para identificar adequação de perfil à função.',
-    'Um bom desempenho depende da combinação entre perfil, ambiente e capacitação. Mesmo perfis "não ideais" podem performar com o suporte e as estratégias corretas.',
-    'Avalie níveis de tensão entre perfil natural e adaptado — altas distorções indicam desgaste e possível desalinhamento com a função atual ou com a cultura do time.',
-    'O perfil apresentado pode ser desenvolvido. Nenhuma habilidade é estática quando há clareza, treinamento e acompanhamento.',
-    'Use este relatório para alinhar expectativas de desempenho, estilo de liderança necessário e estratégia de onboarding.'
+  const finalBullets = [
+    'Este relatório analisa tendências comportamentais para apoiar decisões estratégicas de contratação',
+    'Perfis não determinam capacidade, mas indicam adequação natural e necessidades de desenvolvimento',
+    'Alta tensão entre perfil natural e adaptado indica possível desgaste - avaliar suporte necessário',
+    'Nenhuma característica é estática: invista em capacitação e acompanhamento personalizado'
   ];
 
-  finalPoints.forEach(p => addBulletPoint(p));
+  finalBullets.forEach(b => addBulletPoint(b));
 
   yPos += 10;
-  addSubtitle('Próximos Passos Recomendados');
+  addSubtitle('Próximos Passos Sugeridos:');
   yPos += 3;
 
   const nextSteps = [
-    'Agende uma conversa com o candidato para validar insights e expectativas',
-    'Identifique necessidades de capacitação ou onboarding específico',
-    'Defina métricas de performance alinhadas ao perfil nos primeiros 90 dias',
-    'Busque feedback de líderes diretos sobre alinhamento cultural',
-    'Considere reavaliação em 6-12 meses para acompanhar evolução'
+    'Validar insights em entrevista estruturada com o candidato',
+    'Definir plano de onboarding personalizado baseado no perfil',
+    'Estabelecer métricas de performance alinhadas aos primeiros 90 dias',
+    'Reavaliar em 6-12 meses para acompanhar evolução'
   ];
 
   nextSteps.forEach(s => addBulletPoint(s));
-  
-  yPos += 10;
-  
-  // ========== DECISÃO DO GESTOR ==========
-  checkPageBreak(80);
-  addSubtitle('DECISÃO DO GESTOR/RH');
-  yPos += 5;
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(...SITE_COLORS.textDark);
-  
-  // Data da avaliação
-  const today = new Date();
-  const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
-  doc.text(`Data da Avaliação: ${formattedDate}`, margin, yPos);
-  yPos += 8;
-  
-  doc.text('Avaliado por: ___________________________________', margin, yPos);
-  yPos += 12;
-  
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text('PARECER FINAL:', margin, yPos);
-  yPos += 7;
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  const decisions = [
-    '☐ Aprovado para a função __________________________',
-    '☐ Aprovado com ressalvas (especificar abaixo)',
-    '☐ Necessita desenvolvimento antes da contratação',
-    '☐ Perfil não adequado para a vaga atual'
-  ];
-  
-  decisions.forEach(d => {
-    doc.text(d, margin + 5, yPos);
-    yPos += 7;
-  });
-  
-  yPos += 5;
-  doc.setFont('helvetica', 'bold');
-  doc.text('OBSERVAÇÕES E JUSTIFICATIVAS:', margin, yPos);
-  yPos += 7;
-  
-  doc.setFont('helvetica', 'normal');
-  for (let i = 0; i < 3; i++) {
-    doc.line(margin, yPos, pageWidth - margin, yPos);
-    yPos += 7;
-  }
-  
-  yPos += 5;
-  doc.setFont('helvetica', 'bold');
-  doc.text('PRÓXIMAS AÇÕES:', margin, yPos);
-  yPos += 7;
-  
-  doc.setFont('helvetica', 'normal');
-  const actions = [
-    '☐ Agendar entrevista técnica',
-    '☐ Solicitar referências profissionais',
-    '☐ Definir plano de onboarding personalizado',
-    '☐ Contratar imediatamente',
-    '☐ Incluir em banco de talentos para oportunidade futura'
-  ];
-  
-  actions.forEach(a => {
-    doc.text(a, margin + 5, yPos);
-    yPos += 6;
-  });
-  
-  yPos += 10;
-  doc.text('Assinatura: ____________________________  Data: ___/___/___', margin, yPos);
 
   addFooter();
 
