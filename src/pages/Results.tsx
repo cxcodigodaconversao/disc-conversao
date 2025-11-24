@@ -29,6 +29,16 @@ export default function Results() {
 
   const fetchResults = async () => {
     try {
+      // Verificar autenticação
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setAssessment(null);
+        setResult(null);
+        setLoading(false);
+        return;
+      }
+
       // Buscar assessment e validar acesso
       const { data: assessmentData, error: assessmentError } = await supabase
         .from("assessments")
@@ -38,11 +48,17 @@ export default function Results() {
 
       if (assessmentError) throw assessmentError;
 
-      // Verificar se o usuário atual é o criador da campanha
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user || assessmentData.campaigns.created_by !== user.id) {
-        // Usuário não autorizado
+      // Verificar role do usuário
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      const isSuperAdmin = roleData?.role === "super_admin";
+
+      // Verificar se o usuário é o criador da campanha (ou super_admin)
+      if (!isSuperAdmin && assessmentData.campaigns.created_by !== user.id) {
         setAssessment(null);
         setResult(null);
         setLoading(false);

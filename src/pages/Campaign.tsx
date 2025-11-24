@@ -60,6 +60,12 @@ const Campaign = () => {
 
   const fetchCampaignData = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+
       const { data: campaignData, error: campaignError } = await supabase
         .from("campaigns")
         .select("*")
@@ -67,6 +73,22 @@ const Campaign = () => {
         .single();
 
       if (campaignError) throw campaignError;
+
+      // Verificar se o usuário é dono da campanha (exceto super_admin)
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      const isSuperAdmin = roleData?.role === "super_admin";
+
+      if (!isSuperAdmin && campaignData.created_by !== user.id) {
+        toast.error("Acesso negado: você não tem permissão para ver esta campanha.");
+        navigate("/dashboard");
+        return;
+      }
+
       setCampaign(campaignData);
 
       const { data: assessmentsData, error: assessmentsError } = await supabase
