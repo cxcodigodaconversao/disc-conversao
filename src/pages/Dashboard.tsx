@@ -62,19 +62,46 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const { count: campaignsCount } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Se não for super_admin, filtrar apenas dados próprios
+      const isSuperAdmin = userRole === "super_admin";
+
+      // Query para campanhas ativas
+      let campaignsQuery = supabase
         .from("campaigns")
         .select("*", { count: "exact", head: true })
         .eq("status", "active");
 
-      const { count: assessmentsCount } = await supabase
-        .from("assessments")
-        .select("*", { count: "exact", head: true });
+      if (!isSuperAdmin) {
+        campaignsQuery = campaignsQuery.eq("created_by", user.id);
+      }
 
-      const { count: pendingCount } = await supabase
+      const { count: campaignsCount } = await campaignsQuery;
+
+      // Query para assessments - filtrar via JOIN com campaigns
+      let assessmentsQuery = supabase
         .from("assessments")
-        .select("*", { count: "exact", head: true })
+        .select("id, campaign_id, campaigns!inner(created_by)", { count: "exact", head: true });
+
+      if (!isSuperAdmin) {
+        assessmentsQuery = assessmentsQuery.eq("campaigns.created_by", user.id);
+      }
+
+      const { count: assessmentsCount } = await assessmentsQuery;
+
+      // Query para pendentes
+      let pendingQuery = supabase
+        .from("assessments")
+        .select("id, campaign_id, campaigns!inner(created_by)", { count: "exact", head: true })
         .eq("status", "pending");
+
+      if (!isSuperAdmin) {
+        pendingQuery = pendingQuery.eq("campaigns.created_by", user.id);
+      }
+
+      const { count: pendingCount } = await pendingQuery;
 
       setStats({
         campaigns: campaignsCount || 0,
