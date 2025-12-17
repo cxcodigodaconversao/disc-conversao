@@ -13,7 +13,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="w-8 h-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">DISC da Conversão</span>
+              <span className="text-2xl font-bold text-primary">DISC da Comercial 10X </span>
             </div>
             <div className="flex items-center gap-4">
               <Button variant="ghost" className="text-foreground hover:text-primary">
