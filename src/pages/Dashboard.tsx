@@ -10,7 +10,6 @@ import { CreateUserDialog } from "@/components/admin/CreateUserDialog";
 import { UsersList } from "@/components/admin/UsersList";
 import { CreateCampaignDialog } from "@/components/campaigns/CreateCampaignDialog";
 import { CampaignsList } from "@/components/campaigns/CampaignsList";
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -21,123 +20,119 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     campaigns: 0,
     assessments: 0,
-    pending: 0,
+    pending: 0
   });
-
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       if (!session) {
         navigate("/login");
         return;
       }
-
       setUserEmail(session.user.email || "");
-      
-      // Check user role
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .single();
 
+      // Check user role
+      const {
+        data: roleData
+      } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).single();
       setUserRole(roleData?.role || null);
-      
+
       // Fetch stats
       fetchStats();
       setLoading(false);
     };
-
     checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: {
+        subscription
+      }
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         navigate("/login");
       }
     });
-
     return () => subscription.unsubscribe();
   }, [navigate]);
-
   const fetchStats = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Se não for super_admin, filtrar apenas dados próprios
       const isSuperAdmin = userRole === "super_admin";
 
       // Query para campanhas ativas
-      let campaignsQuery = supabase
-        .from("campaigns")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active");
-
+      let campaignsQuery = supabase.from("campaigns").select("*", {
+        count: "exact",
+        head: true
+      }).eq("status", "active");
       if (!isSuperAdmin) {
         campaignsQuery = campaignsQuery.eq("created_by", user.id);
       }
-
-      const { count: campaignsCount } = await campaignsQuery;
+      const {
+        count: campaignsCount
+      } = await campaignsQuery;
 
       // Query para assessments - filtrar via JOIN com campaigns
-      let assessmentsQuery = supabase
-        .from("assessments")
-        .select("id, campaign_id, campaigns!inner(created_by)", { count: "exact", head: true });
-
+      let assessmentsQuery = supabase.from("assessments").select("id, campaign_id, campaigns!inner(created_by)", {
+        count: "exact",
+        head: true
+      });
       if (!isSuperAdmin) {
         assessmentsQuery = assessmentsQuery.eq("campaigns.created_by", user.id);
       }
-
-      const { count: assessmentsCount } = await assessmentsQuery;
+      const {
+        count: assessmentsCount
+      } = await assessmentsQuery;
 
       // Query para pendentes
-      let pendingQuery = supabase
-        .from("assessments")
-        .select("id, campaign_id, campaigns!inner(created_by)", { count: "exact", head: true })
-        .eq("status", "pending");
-
+      let pendingQuery = supabase.from("assessments").select("id, campaign_id, campaigns!inner(created_by)", {
+        count: "exact",
+        head: true
+      }).eq("status", "pending");
       if (!isSuperAdmin) {
         pendingQuery = pendingQuery.eq("campaigns.created_by", user.id);
       }
-
-      const { count: pendingCount } = await pendingQuery;
-
+      const {
+        count: pendingCount
+      } = await pendingQuery;
       setStats({
         campaigns: campaignsCount || 0,
         assessments: assessmentsCount || 0,
-        pending: pendingCount || 0,
+        pending: pendingCount || 0
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
   };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logout realizado com sucesso!");
     navigate("/");
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+    return <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Brain className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
           <p className="text-muted-foreground">Carregando...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="w-8 h-8 text-primary" />
-              <span className="text-xl font-bold text-primary">DISC da Conversão</span>
+              <span className="text-xl font-bold text-primary">DISC Comercial 10X</span>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">{userEmail}</span>
@@ -194,32 +189,24 @@ const Dashboard = () => {
             <TabsContent value="campaigns" className="space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Gerenciar Campanhas</h2>
-                <CreateCampaignDialog
-                  onCampaignCreated={() => {
-                    setRefreshCampaigns((prev) => prev + 1);
-                    fetchStats();
-                  }}
-                />
+                <CreateCampaignDialog onCampaignCreated={() => {
+                setRefreshCampaigns(prev => prev + 1);
+                fetchStats();
+              }} />
               </div>
               <CampaignsList refreshTrigger={refreshCampaigns} />
             </TabsContent>
 
-            {userRole === "super_admin" && (
-              <TabsContent value="users" className="space-y-4">
+            {userRole === "super_admin" && <TabsContent value="users" className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Gerenciar Usuários</h2>
-                  <CreateUserDialog
-                    onUserCreated={() => setRefreshUsers((prev) => prev + 1)}
-                  />
+                  <CreateUserDialog onUserCreated={() => setRefreshUsers(prev => prev + 1)} />
                 </div>
                 <UsersList refreshTrigger={refreshUsers} />
-              </TabsContent>
-            )}
+              </TabsContent>}
           </Tabs>
         </div>
       </main>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;
